@@ -10,9 +10,10 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 
 interface MapWrapperProps {
     conflicts: Conflict[]
+    onClusterClick?: (conflicts: Conflict[]) => void
 }
 
-export default function MapWrapper({ conflicts }: MapWrapperProps) {
+export default function MapWrapper({ conflicts, onClusterClick }: MapWrapperProps) {
     const Map = useMemo(() => dynamic(
         () => import('@/components/ConflictMap'),
         {
@@ -21,5 +22,5 @@ export default function MapWrapper({ conflicts }: MapWrapperProps) {
         }
     ), [])
 
-    return <Map />
+    return <Map conflicts={conflicts} onClusterClick={onClusterClick} />
 }

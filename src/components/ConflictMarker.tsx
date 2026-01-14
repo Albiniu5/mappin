@@ -32,24 +32,32 @@ export default function ConflictMarker({ conflict }: ConflictMarkerProps) {
     const colorClass = getSeverityColor(conflict.severity)
     const iconChar = getCategoryIcon(conflict.category)
 
-    // Create custom icon
+    // Create custom icon with premium animations
     const customIcon = new DivIcon({
         className: 'bg-transparent',
         html: `
-      <div class="relative group">
-        <div class="absolute -inset-2 rounded-full ${colorClass} opacity-20 animate-ping group-hover:opacity-40"></div>
-        <div class="relative w-8 h-8 rounded-full ${colorClass} border-2 border-slate-900 shadow-lg flex items-center justify-center text-xs transform transition-transform group-hover:scale-110">
+      <div class="relative group cursor-pointer">
+        <!-- Outer pulsing ring -->
+        <div class="absolute -inset-4 rounded-full ${colorClass} opacity-10 animate-ping" style="animation-duration: 2s;"></div>
+        <!-- Middle glow -->
+        <div class="absolute -inset-2 rounded-full ${colorClass} opacity-30 blur-sm"></div>
+        <!-- Inner marker -->
+        <div class="relative w-10 h-10 rounded-full ${colorClass} border-3 border-white shadow-2xl flex items-center justify-center text-base font-bold transform transition-all duration-300 group-hover:scale-125 group-hover:shadow-3xl">
           ${iconChar}
         </div>
       </div>
     `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -20]
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -25]
     })
 
     return (
-        <Marker position={[conflict.latitude, conflict.longitude]} icon={customIcon}>
+        <Marker
+            position={[conflict.latitude, conflict.longitude]}
+            icon={customIcon}
+            conflictId={conflict.id}
+        >
             <Popup className="leaflet-popup-dark">
                 <div className="p-1 min-w-[250px]">
                     <div className="flex justify-between items-start mb-2">
