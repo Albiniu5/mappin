@@ -10,20 +10,20 @@ export async function GET() {
     try {
         console.log('Starting historical data backfill...');
 
-        // Calculate date 6 months ago
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        const dateStr = sixMonthsAgo.toISOString();
+        // Calculate date 5 years ago
+        const fiveYearsAgo = new Date();
+        fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+        const dateStr = fiveYearsAgo.toISOString();
 
         // Build query params
         // Filter: 
-        // - Date > 6 months ago
+        // - Date > 5 years ago
         // - Content contains "conflict" or "war" or "attack"
         const params = new URLSearchParams({
             'appname': 'mappin-app',
             'profile': 'list',
             'preset': 'latest',
-            'limit': '100', // Fetch 100 items (can increase if needed, max 1000)
+            'limit': '1000', // Fetch max allowed items for deep history
             'filter[operator]': 'AND',
             'filter[conditions][0][field]': 'date.created',
             'filter[conditions][0][value]': dateStr,
@@ -60,23 +60,23 @@ export async function GET() {
         }
 
         // Optimized Query with fields
-        const fieldsParams = new URLSearchParams({
-            'appname': 'mappin-app',
-            'profile': 'list',
-            'preset': 'latest',
-            'limit': '50', // Do 50 to be safe on timeouts
-            'filter[operator]': 'AND',
-            'filter[conditions][0][field]': 'date.created',
-            'filter[conditions][0][value]': dateStr,
-            'filter[conditions][0][operator]': '>=',
-            'filter[conditions][1][field]': 'title',
-            'filter[conditions][1][value]': 'conflict OR war OR attack OR military OR violence',
-            'fields[include][]': 'title',
-            'fields[include][]': 'body',
-            'fields[include][]': 'url',
-            'fields[include][]': 'date',
-            'fields[include][]': 'primary_country'
-        });
+        const fieldsParams = new URLSearchParams([
+            ['appname', 'mappin-app'],
+            ['profile', 'list'],
+            ['preset', 'latest'],
+            ['limit', '1000'],
+            ['filter[operator]', 'AND'],
+            ['filter[conditions][0][field]', 'date.created'],
+            ['filter[conditions][0][value]', dateStr],
+            ['filter[conditions][0][operator]', '>='],
+            ['filter[conditions][1][field]', 'title'],
+            ['filter[conditions][1][value]', 'conflict OR war OR attack OR military OR violence'],
+            ['fields[include][]', 'title'],
+            ['fields[include][]', 'body'],
+            ['fields[include][]', 'url'],
+            ['fields[include][]', 'date'],
+            ['fields[include][]', 'primary_country']
+        ]);
 
         // Fix: Duplicate query param handling for fields
         const url = `${BASE_URL}?${fieldsParams.toString().replace(/%5B%5D=/g, '[]=')}`;
