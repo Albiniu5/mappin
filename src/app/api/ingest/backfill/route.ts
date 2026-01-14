@@ -60,7 +60,7 @@ export async function GET() {
         }
 
         const BATCH_SIZE = 1000;
-        const MAX_LOOPS = 3; // Fetch 3000 items total
+        const MAX_LOOPS = 10; // Fetch 10,000 items total (API Max)
 
         for (let i = 0; i < MAX_LOOPS; i++) {
             const offset = i * BATCH_SIZE;
