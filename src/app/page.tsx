@@ -124,8 +124,13 @@ export default function Home() {
     return allConflicts.filter(c => {
       const pubDate = new Date(c.published_at)
 
-      // Check if conflict matches selected date
-      const isSameDate = currentDate ? pubDate.toDateString() === currentDate.toDateString() : true;
+      // Show conflicts from the last 30 days (or current selected date when timeline is used)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const isWithinRange = currentDate
+        ? pubDate.toDateString() === currentDate.toDateString() || pubDate >= thirtyDaysAgo
+        : pubDate >= thirtyDaysAgo;
 
       const matchesSearch = searchTerm === '' ||
         c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,7 +138,7 @@ export default function Home() {
 
       const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory
 
-      return isSameDate && matchesSearch && matchesCategory
+      return isWithinRange && matchesSearch && matchesCategory
     })
   }, [allConflicts, currentDate, searchTerm, selectedCategory])
 
