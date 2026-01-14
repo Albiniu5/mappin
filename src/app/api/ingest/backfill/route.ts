@@ -59,86 +59,88 @@ export async function GET() {
             // Better to add fields to the initial query.
         }
 
-        // Optimized Query with fields
-        const fieldsParams = new URLSearchParams([
-            ['appname', 'mappin-app'],
-            ['profile', 'list'],
-            ['preset', 'latest'],
-            ['limit', '1000'],
-            ['filter[operator]', 'AND'],
-            ['filter[conditions][0][field]', 'date.created'],
-            ['filter[conditions][0][value]', dateStr],
-            ['filter[conditions][0][operator]', '>='],
-            ['filter[conditions][1][field]', 'title'],
-            ['filter[conditions][1][value]', 'conflict OR war OR attack OR military OR violence'],
-            ['fields[include][]', 'title'],
-            ['fields[include][]', 'body'],
-            ['fields[include][]', 'url'],
-            ['fields[include][]', 'date'],
-            ['fields[include][]', 'primary_country']
-        ]);
+        const BATCH_SIZE = 1000;
+        const MAX_LOOPS = 3; // Fetch 3000 items total
 
-        // Fix: Duplicate query param handling for fields
-        const url = `${BASE_URL}?${fieldsParams.toString().replace(/%5B%5D=/g, '[]=')}`;
+        for (let i = 0; i < MAX_LOOPS; i++) {
+            const offset = i * BATCH_SIZE;
+            console.log(`fetching batch ${i + 1}/${MAX_LOOPS} (offset: ${offset})...`);
 
-        console.log("Fetching: ", url);
-        const resWithFields = await fetch(url);
-        const richData = await resWithFields.json();
+            const fieldsParams = new URLSearchParams([
+                ['appname', 'mappin-app'],
+                ['profile', 'list'],
+                ['preset', 'latest'],
+                ['limit', BATCH_SIZE.toString()],
+                ['offset', offset.toString()],
+                ['filter[operator]', 'AND'],
+                ['filter[conditions][0][field]', 'date.created'],
+                ['filter[conditions][0][value]', dateStr],
+                ['filter[conditions][0][operator]', '>='],
+                ['filter[conditions][1][field]', 'title'],
+                ['filter[conditions][1][value]', 'conflict OR war OR attack OR military OR violence'],
+                ['fields[include][]', 'title'],
+                ['fields[include][]', 'body'],
+                ['fields[include][]', 'url'],
+                ['fields[include][]', 'date'],
+                ['fields[include][]', 'primary_country']
+            ]);
 
-        for (const item of richData.data) {
-            const title = item.fields.title;
-            // Body is sometimes markdown or huge. Take first 500 chars.
-            const body = item.fields.body || "";
-            const description = body.substring(0, 500);
-            const sourceUrl = item.fields.url;
-            const date = item.fields.date.created;
+            const url = `${BASE_URL}?${fieldsParams.toString().replace(/%5B%5D=/g, '[]=')}`;
+            const resWithFields = await fetch(url);
+            const richData = await resWithFields.json();
 
-            // Check duplication
-            const { data: existing } = await supabase
-                .from('conflicts')
-                .select('id')
-                .eq('source_url', sourceUrl)
-                .single();
-
-            if (existing) continue;
-
-            // Extract Locations
-            // Use fallback extraction (lat/lon from text/country)
-            // We can also use item.fields.primary_country.name to help!
-            let extracted = fallbackExtraction(title, description);
-
-            // Enhancement: If fallback failed to find specific city/region, 
-            // but we have primary_country, try to geocode that country?
-            // fallbackExtraction already has a big dictionary. 
-            // Let's rely on it for now, forcing the country name into the text helps.
-            if (!extracted && item.fields.primary_country) {
-                const countryName = item.fields.primary_country.name;
-                extracted = fallbackExtraction(title + " " + countryName, description);
+            if (!richData.data || richData.data.length === 0) {
+                console.log("No more data found, stopping.");
+                break;
             }
 
-            if (extracted) {
-                const insertData: Database['public']['Tables']['conflicts']['Insert'] = {
-                    title: title,
-                    description: extracted.summary,
-                    source_url: sourceUrl,
-                    published_at: date,
-                    latitude: extracted.latitude,
-                    longitude: extracted.longitude,
-                    location_name: extracted.location_name,
-                    category: extracted.category,
-                    severity: extracted.severity
-                };
+            for (const item of richData.data) {
+                const title = item.fields.title;
+                const body = item.fields.body || "";
+                const description = body.substring(0, 500);
+                const sourceUrl = item.fields.url;
+                const date = item.fields.date.created;
 
-                // @ts-ignore
-                const { error } = await supabase.from('conflicts').insert(insertData);
-                if (error) {
-                    console.error("Insert error", error);
-                    errors++;
-                } else {
-                    inserted++;
+                // Check duplication
+                const { data: existing } = await supabase
+                    .from('conflicts')
+                    .select('id')
+                    .eq('source_url', sourceUrl)
+                    .single();
+
+                if (existing) continue;
+
+                let extracted = fallbackExtraction(title, description);
+
+                if (!extracted && item.fields.primary_country) {
+                    const countryName = item.fields.primary_country.name;
+                    extracted = fallbackExtraction(title + " " + countryName, description);
                 }
+
+                if (extracted) {
+                    const insertData: Database['public']['Tables']['conflicts']['Insert'] = {
+                        title: title,
+                        description: extracted.summary,
+                        source_url: sourceUrl,
+                        published_at: date,
+                        latitude: extracted.latitude,
+                        longitude: extracted.longitude,
+                        location_name: extracted.location_name,
+                        category: extracted.category,
+                        severity: extracted.severity
+                    };
+
+                    // @ts-ignore
+                    const { error } = await supabase.from('conflicts').insert(insertData);
+                    if (error) {
+                        console.error("Insert error", error);
+                        errors++;
+                    } else {
+                        inserted++;
+                    }
+                }
+                processed++;
             }
-            processed++;
         }
 
         return NextResponse.json({
