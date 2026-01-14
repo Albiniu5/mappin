@@ -56,7 +56,6 @@ export default function ConflictMarker({ conflict }: ConflictMarkerProps) {
         <Marker
             position={[conflict.latitude, conflict.longitude]}
             icon={customIcon}
-            conflictId={conflict.id}
         >
             <Popup className="leaflet-popup-dark">
                 <div className="p-1 min-w-[250px]">
