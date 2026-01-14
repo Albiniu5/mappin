@@ -125,7 +125,8 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                                     type="date"
                                     value={date.toISOString().split('T')[0]}
                                     onChange={(e) => {
-                                        setDate(new Date(e.target.value));
+                                        const [y, m, d] = e.target.value.split('-').map(Number);
+                                        setDate(new Date(y, m - 1, d));
                                         setShowCalendar(false);
                                     }}
                                     min={range.start.toISOString().split('T')[0]}
