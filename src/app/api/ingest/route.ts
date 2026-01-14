@@ -10,7 +10,7 @@ import { Database } from '@/types/supabase';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Comprehensive fallback extraction when AI fails
-function fallbackExtraction(title: string, description: string) {
+export function fallbackExtraction(title: string, description: string) {
     const text = (title + " " + description).toLowerCase();
 
     // Expanded location database with major world regions and conflict zones

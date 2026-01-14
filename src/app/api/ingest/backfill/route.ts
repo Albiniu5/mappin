@@ -1,0 +1,155 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { Database } from '@/types/supabase';
+import { fallbackExtraction } from '../route';
+
+// ReliefWeb API URL
+const BASE_URL = 'https://api.reliefweb.int/v1/reports';
+
+export async function GET() {
+    try {
+        console.log('Starting historical data backfill...');
+
+        // Calculate date 6 months ago
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const dateStr = sixMonthsAgo.toISOString();
+
+        // Build query params
+        // Filter: 
+        // - Date > 6 months ago
+        // - Content contains "conflict" or "war" or "attack"
+        const params = new URLSearchParams({
+            'appname': 'mappin-app',
+            'profile': 'list',
+            'preset': 'latest',
+            'limit': '100', // Fetch 100 items (can increase if needed, max 1000)
+            'filter[operator]': 'AND',
+            'filter[conditions][0][field]': 'date.created',
+            'filter[conditions][0][value]': dateStr,
+            'filter[conditions][0][operator]': '>=',
+            'filter[conditions][1][field]': 'body', // Search body for keywords
+            'filter[conditions][1][value]': 'conflict OR war OR attack OR military OR violence',
+            // 'sort[]': 'date.created:desc' // Default is desc
+        });
+
+        const response = await fetch(`${BASE_URL}?${params.toString()}`);
+        const data = await response.json();
+
+        if (!data.data || !Array.isArray(data.data)) {
+            throw new Error('Invalid response from ReliefWeb API');
+        }
+
+        console.log(`Fetched ${data.count} potential reports from ReliefWeb`);
+
+        let processed = 0;
+        let errors = 0;
+        let inserted = 0;
+
+        for (const report of data.data) {
+            // ReliefWeb list endpoint gives truncated info. 
+            // We usually need to fetch individual item for full body, 
+            // but for mapping, the title + body-snippet might be enough if mapped correctly.
+            // Actually, 'list' profile with 'body' field might populate it? 
+            // Let's check field filtering. 
+            // By default 'list' returns id, title, date, status. 
+            // We want fields[include][]=title,body,url,date,primary_country
+
+            // Re-fetch logic or optimize: 
+            // Better to add fields to the initial query.
+        }
+
+        // Optimized Query with fields
+        const fieldsParams = new URLSearchParams({
+            'appname': 'mappin-app',
+            'profile': 'list',
+            'preset': 'latest',
+            'limit': '50', // Do 50 to be safe on timeouts
+            'filter[operator]': 'AND',
+            'filter[conditions][0][field]': 'date.created',
+            'filter[conditions][0][value]': dateStr,
+            'filter[conditions][0][operator]': '>=',
+            'filter[conditions][1][field]': 'title',
+            'filter[conditions][1][value]': 'conflict OR war OR attack OR military OR violence',
+            'fields[include][]': 'title',
+            'fields[include][]': 'body',
+            'fields[include][]': 'url',
+            'fields[include][]': 'date',
+            'fields[include][]': 'primary_country'
+        });
+
+        // Fix: Duplicate query param handling for fields
+        const url = `${BASE_URL}?${fieldsParams.toString().replace(/%5B%5D=/g, '[]=')}`;
+
+        console.log("Fetching: ", url);
+        const resWithFields = await fetch(url);
+        const richData = await resWithFields.json();
+
+        for (const item of richData.data) {
+            const title = item.fields.title;
+            // Body is sometimes markdown or huge. Take first 500 chars.
+            const body = item.fields.body || "";
+            const description = body.substring(0, 500);
+            const sourceUrl = item.fields.url;
+            const date = item.fields.date.created;
+
+            // Check duplication
+            const { data: existing } = await supabase
+                .from('conflicts')
+                .select('id')
+                .eq('source_url', sourceUrl)
+                .single();
+
+            if (existing) continue;
+
+            // Extract Locations
+            // Use fallback extraction (lat/lon from text/country)
+            // We can also use item.fields.primary_country.name to help!
+            let extracted = fallbackExtraction(title, description);
+
+            // Enhancement: If fallback failed to find specific city/region, 
+            // but we have primary_country, try to geocode that country?
+            // fallbackExtraction already has a big dictionary. 
+            // Let's rely on it for now, forcing the country name into the text helps.
+            if (!extracted && item.fields.primary_country) {
+                const countryName = item.fields.primary_country.name;
+                extracted = fallbackExtraction(title + " " + countryName, description);
+            }
+
+            if (extracted) {
+                const insertData: Database['public']['Tables']['conflicts']['Insert'] = {
+                    title: title,
+                    description: extracted.summary,
+                    source_url: sourceUrl,
+                    published_at: date,
+                    latitude: extracted.latitude,
+                    longitude: extracted.longitude,
+                    location_name: extracted.location_name,
+                    category: extracted.category,
+                    severity: extracted.severity
+                };
+
+                // @ts-ignore
+                const { error } = await supabase.from('conflicts').insert(insertData);
+                if (error) {
+                    console.error("Insert error", error);
+                    errors++;
+                } else {
+                    inserted++;
+                }
+            }
+            processed++;
+        }
+
+        return NextResponse.json({
+            success: true,
+            processed,
+            inserted,
+            errors
+        });
+
+    } catch (error: any) {
+        console.error(error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+}
