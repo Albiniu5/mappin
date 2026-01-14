@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, FastForward } from 'lucide-react'
+import { Play, Pause, FastForward, Calendar, RotateCcw } from 'lucide-react'
 
 interface TimelineProps {
     date: Date
@@ -17,6 +17,7 @@ interface TimelineProps {
 
 export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, onPlayToggle, playbackSpeed = 1, setPlaybackSpeed }: TimelineProps) {
     const [mounted, setMounted] = useState(false)
+    const [showCalendar, setShowCalendar] = useState(false)
     const [range, setRange] = useState({
         start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
         end: maxDate || new Date()
@@ -99,10 +100,45 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                         suppressHydrationWarning
                     />
                 </div>
+                <div className="flex items-center justify-between gap-2">
+                    {/* Jump to Today */}
+                    <button
+                        onClick={() => setDate(new Date())}
+                        className="p-2 rounded-lg bg-slate-700 hover:bg-blue-600 transition-all duration-300 group"
+                        title="Jump to Today"
+                    >
+                        <RotateCcw className="w-5 h-5 text-blue-400 group-hover:text-white" />
+                    </button>
 
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                    <span suppressHydrationWarning>{range.start.toLocaleDateString('en-US')}</span>
-                    <span suppressHydrationWarning>{range.end.toLocaleDateString('en-US')}</span>
+                    {/* Calendar Picker */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowCalendar(!showCalendar)}
+                            className="p-2 rounded-lg bg-slate-700 hover:bg-purple-600 transition-all duration-300 group"
+                            title="Pick Date"
+                        >
+                            <Calendar className="w-5 h-5 text-purple-400 group-hover:text-white" />
+                        </button>
+                        {showCalendar && (
+                            <div className="absolute bottom-12 left-0 bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-2xl z-50">
+                                <input
+                                    type="date"
+                                    value={date.toISOString().split('T')[0]}
+                                    onChange={(e) => {
+                                        setDate(new Date(e.target.value));
+                                        setShowCalendar(false);
+                                    }}
+                                    min={range.start.toISOString().split('T')[0]}
+                                    max={range.end.toISOString().split('T')[0]}
+                                    className="bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-500 font-mono flex-1">
+                        <span suppressHydrationWarning>{range.start.toLocaleDateString('en-US')}</span>
+                        <span suppressHydrationWarning>{range.end.toLocaleDateString('en-US')}</span>
+                    </div>
                 </div>
             </div>
         </div>

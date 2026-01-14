@@ -8,6 +8,7 @@ import { Icon, DivIcon } from 'leaflet'
 import { useEffect } from 'react'
 import { Database } from '@/types/supabase'
 import ConflictMarker from './ConflictMarker'
+import { Globe } from 'lucide-react'
 
 // Fix default icon issue
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
@@ -32,6 +33,27 @@ const FixLeafletIcon = () => {
         });
     }, [map])
     return null
+}
+
+const ZoomOutButton = () => {
+    const map = useMap()
+
+    return (
+        <div className="leaflet-top leaflet-right">
+            <div className="leaflet-control leaflet-bar">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        map.flyTo([20, 0], 2.5, { duration: 1.5 });
+                    }}
+                    className="w-[30px] h-[30px] bg-white hover:bg-slate-100 flex items-center justify-center cursor-pointer border-b-2 border-slate-300"
+                    title="Reset to Global View"
+                >
+                    <Globe className="w-4 h-4 text-slate-700" />
+                </button>
+            </div>
+        </div>
+    )
 }
 
 export default function ConflictMap({ conflicts = [], onClusterClick }: ConflictMapProps) {
@@ -65,6 +87,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             maxBounds={[[-90, -180], [90, 180]]}
         >
             <FixLeafletIcon />
+            <ZoomOutButton />
             {/* Dark themed tiles */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
