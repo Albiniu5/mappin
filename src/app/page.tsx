@@ -6,7 +6,7 @@ import Timeline from '@/components/Timeline'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/supabase'
-import { Search, Loader2, Database, X } from 'lucide-react'
+import { Search, Loader2, Database as DatabaseIcon, X } from 'lucide-react'
 import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
@@ -244,7 +244,7 @@ export default function Home() {
             id="backfill-btn"
             className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
           >
-            <Database size={12} />
+            <DatabaseIcon size={12} />
             📜 Populate History (5 Years)
           </button>
 
