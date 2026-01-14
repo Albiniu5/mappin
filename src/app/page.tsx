@@ -124,17 +124,16 @@ export default function Home() {
     return allConflicts.filter(c => {
       const pubDate = new Date(c.published_at)
 
-      // Show last 30 days if "Today" is selected, otherwise show specific date
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      // If "Today" (Live Mode) is selected, show ALL history (clusters handle performance)
+      // If a specific past date is selected, show ONLY that date
 
       const isToday = currentDate
         ? currentDate.toDateString() === new Date().toDateString()
         : true;
 
       const isWithinRange = currentDate
-        ? (isToday ? pubDate >= thirtyDaysAgo : pubDate.toDateString() === currentDate.toDateString())
-        : pubDate >= thirtyDaysAgo;
+        ? (isToday ? true : pubDate.toDateString() === currentDate.toDateString())
+        : true;
 
       const matchesSearch = searchTerm === '' ||
         c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
