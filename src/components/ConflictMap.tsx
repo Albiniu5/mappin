@@ -43,8 +43,13 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
 
         const markers = cluster.getAllChildMarkers();
         const clusterConflicts = markers.map((marker: any) => {
-            const conflictId = marker.options.conflictId;
-            return conflicts.find(c => c.id === conflictId);
+            // Get marker position
+            const markerPos = marker.getLatLng();
+            // Find matching conflict by coordinates
+            return conflicts.find(c =>
+                Math.abs(c.latitude - markerPos.lat) < 0.0001 &&
+                Math.abs(c.longitude - markerPos.lng) < 0.0001
+            );
         }).filter(Boolean) as Conflict[];
 
         onClusterClick(clusterConflicts);

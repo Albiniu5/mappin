@@ -253,7 +253,7 @@ export default function Home() {
 
       {/* Cluster Sidebar */}
       {showClusterSidebar && (
-        <div className="absolute right-0 top-0 h-full w-96 bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col">
+        <div className="absolute right-0 top-0 h-full w-[500px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-slate-700 flex justify-between items-center">
             <div>
