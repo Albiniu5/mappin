@@ -45,7 +45,7 @@
 
 .animate-marquee {
   display: flex;
-  animation: marquee 120s linear infinite;
+  animation: marquee 480s linear infinite;
 }
 
 .animate-marquee:hover {
