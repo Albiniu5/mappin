@@ -237,35 +237,50 @@ export default function Home() {
                   const offset = i * BATCH_SIZE;
                   if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
 
-                  const params = new URLSearchParams([
-                    ['appname', 'rwint-user-0'], // Browser is not blocked, standard key works
-                    ['profile', 'list'],
-                    ['preset', 'latest'],
-                    ['limit', BATCH_SIZE.toString()],
-                    ['offset', offset.toString()],
-                    ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
-                    ['filter[field]', 'date.created'],
-                    ['filter[value][from]', dateStr],
-                    ['fields[include][]', 'title'],
-                    ['fields[include][]', 'body'],
-                    ['fields[include][]', 'url'],
-                    ['fields[include][]', 'date'],
-                    ['fields[include][]', 'primary_country']
-                  ]);
+                  const APPNAMES = ['rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'];
+                  let data;
+                  let usedAppname;
 
-                  const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
-                  console.log(`Fetching: ${url}`);
+                  // Rotation Loop
+                  for (const appname of APPNAMES) {
+                    try {
+                      console.log(`Trying appname: ${appname}`);
+                      const params = new URLSearchParams([
+                        ['appname', appname],
+                        ['profile', 'list'],
+                        ['preset', 'latest'],
+                        ['limit', BATCH_SIZE.toString()],
+                        ['offset', offset.toString()],
+                        ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
+                        ['filter[field]', 'date.created'],
+                        ['filter[value][from]', dateStr],
+                        ['fields[include][]', 'title'],
+                        ['fields[include][]', 'body'],
+                        ['fields[include][]', 'url'],
+                        ['fields[include][]', 'date'],
+                        ['fields[include][]', 'primary_country']
+                      ]);
 
-                  const res = await fetch(url, { mode: 'cors' });
-                  const data = await res.json();
-                  console.log('ReliefWeb Batch Data:', data);
+                      const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
+                      const res = await fetch(url); // Standard fetch, CORS enabled by default
+                      const json = await res.json();
 
-                  if (!data.data || data.data.length === 0) {
-                    console.warn("No more data from ReliefWeb (or empty response)", data);
-                    // Don't break immediately on first batch if it's empty, might be an issue.
-                    // But usually it means done.
-                    // Let's alert if total is 0.
-                    if (i === 0) alert(`Warning: First batch empty. URL: ${url}`);
+                      if (!json.error) {
+                        data = json;
+                        usedAppname = appname;
+                        console.log(`Success with ${appname}`);
+                        break; // Success!
+                      } else {
+                        console.warn(`Appname ${appname} returned API error:`, json.error);
+                      }
+                    } catch (e) {
+                      console.warn(`Appname ${appname} network error:`, e);
+                    }
+                  }
+
+                  if (!data || !data.data || data.data.length === 0) {
+                    console.warn("No more data from ReliefWeb (or all keys blocked)", data);
+                    if (i === 0) alert(`Warning: Batch 1 failed. All keys blocked or no data.`);
                     break;
                   }
 
