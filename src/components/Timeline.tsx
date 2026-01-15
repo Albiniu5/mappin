@@ -18,6 +18,16 @@ interface TimelineProps {
 export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, onPlayToggle, playbackSpeed = 1, setPlaybackSpeed }: TimelineProps) {
     const [mounted, setMounted] = useState(false)
     const [showCalendar, setShowCalendar] = useState(false)
+    const [internalDate, setInternalDate] = useState<Date>(date) // Local state for smooth dragging
+    const [isDragging, setIsDragging] = useState(false)
+
+    // Sync internal state when prop changes (unless dragging)
+    useEffect(() => {
+        if (!isDragging) {
+            setInternalDate(date)
+        }
+    }, [date, isDragging])
+
     const [range, setRange] = useState({
         start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
         end: new Date()
@@ -27,6 +37,8 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         setMounted(true)
         const today = new Date()
         const newEnd = maxDate && maxDate > today ? maxDate : today
+        console.log(`🎚️ Timeline Max Date prop: ${maxDate?.toISOString()}, calculated end: ${newEnd.toISOString()}`)
+
         setRange({
             start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
             end: newEnd
@@ -35,7 +47,16 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
     const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newDate = new Date(Number(e.target.value))
-        setDate(newDate)
+        setInternalDate(newDate) // Update UI immediately
+        if (!isDragging) setIsDragging(true)
+    }
+
+    const commitDateChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+        const target = e.target as HTMLInputElement;
+        const finalDate = new Date(Number(target.value))
+        setInternalDate(finalDate)
+        setDate(finalDate) // Commit to parent
+        setIsDragging(false)
     }
 
     const handleSpeedChange = () => {
@@ -46,9 +67,9 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         setPlaybackSpeed(nextSpeed);
     }
 
-    // Calculate progress percentage
+    // Calculate progress percentage using internal date for smoothness
     const progress = range.start && range.end
-        ? ((date.getTime() - range.start.getTime()) / (range.end.getTime() - range.start.getTime())) * 100
+        ? ((internalDate.getTime() - range.start.getTime()) / (range.end.getTime() - range.start.getTime())) * 100
         : 0;
 
     if (!mounted) {
@@ -65,6 +86,7 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                 {isPlaying ? <Pause size={20} /> : <Play size={20} />}
             </button>
 
+            {/* Playback speed control */}
             {setPlaybackSpeed && (
                 <button
                     onClick={handleSpeedChange}
@@ -78,7 +100,7 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
             <div className="flex-1 flex flex-col gap-1">
                 <label className="text-xs text-slate-400 font-mono uppercase tracking-wider flex justify-between items-center">
-                    <span>{date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span>{internalDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     {isPlaying && <span className="text-orange-400 animate-pulse">● Playing</span>}
                 </label>
 
@@ -95,17 +117,10 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                         type="range"
                         min={range.start.getTime()}
                         max={range.end.getTime()}
-                        value={date.getTime()}
+                        value={internalDate.getTime()}
                         onChange={handleSliderChange}
-                        onMouseUp={(e) => {
-                            // Ensure final value is set
-                            const target = e.target as HTMLInputElement;
-                            setDate(new Date(Number(target.value)));
-                        }}
-                        onTouchEnd={(e) => {
-                            const target = e.target as HTMLInputElement;
-                            setDate(new Date(Number(target.value)));
-                        }}
+                        onMouseUp={commitDateChange}
+                        onTouchEnd={commitDateChange}
                         step={24 * 60 * 60 * 1000} // 1 day steps
                         className="relative w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg"
                         suppressHydrationWarning
@@ -114,7 +129,11 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                 <div className="flex items-center justify-between gap-2">
                     {/* Jump to Today */}
                     <button
-                        onClick={() => setDate(new Date())}
+                        onClick={() => {
+                            const now = new Date();
+                            setInternalDate(now);
+                            setDate(now);
+                        }}
                         className="p-2 rounded-lg bg-slate-700 hover:bg-blue-600 transition-all duration-300 group"
                         title="Jump to Today"
                     >
@@ -134,10 +153,12 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                             <div className="absolute bottom-12 left-0 bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-2xl z-50">
                                 <input
                                     type="date"
-                                    value={date.toISOString().split('T')[0]}
+                                    value={internalDate.toISOString().split('T')[0]}
                                     onChange={(e) => {
                                         const [y, m, d] = e.target.value.split('-').map(Number);
-                                        setDate(new Date(y, m - 1, d));
+                                        const newDate = new Date(y, m - 1, d);
+                                        setInternalDate(newDate);
+                                        setDate(newDate);
                                         setShowCalendar(false);
                                     }}
                                     min={range.start.toISOString().split('T')[0]}
