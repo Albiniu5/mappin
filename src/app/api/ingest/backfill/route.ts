@@ -45,6 +45,7 @@ export async function GET() {
                     // If success (data exists) or empty data (valid response), return
                     // If error... try next
                     if (!data.error) {
+                        console.log(`Success with appname: ${appname}`);
                         return data;
                     }
                     lastError = data.error.message;
