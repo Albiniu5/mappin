@@ -213,33 +213,86 @@ export default function Home() {
           </div>
 
           {/* Admin: Backfill Button */}
+          {/* Admin: Backfill Button */}
           <button
             onClick={async () => {
               const btn = document.getElementById('backfill-btn');
-              if (btn) btn.innerHTML = '⏳ Loading...';
+              if (btn) btn.innerHTML = '⏳ Initializing...';
+
+              setLoading(true);
+
               try {
-                setLoading(true)
-                alert("Starting population... This may take 1-2 minutes.")
-                const response = await fetch('/api/ingest/backfill')
+                // Configuration
+                const BASE_URL = 'https://api.reliefweb.int/v1/reports';
+                const MAX_LOOPS = 10;
+                const BATCH_SIZE = 1000;
+                const fiveYearsAgo = new Date();
+                fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+                const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
-                const result = await response.json()
+                let totalProcessed = 0;
+                let totalStats = { processed: 0, inserted: 0, errors: 0 };
 
-                if (!response.ok) {
-                  throw new Error(result.error || 'Failed to start population')
+                for (let i = 0; i < MAX_LOOPS; i++) {
+                  const offset = i * BATCH_SIZE;
+                  if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
+
+                  const params = new URLSearchParams([
+                    ['appname', 'rwint-user-0'], // Browser is not blocked, standard key works
+                    ['profile', 'list'],
+                    ['preset', 'latest'],
+                    ['limit', BATCH_SIZE.toString()],
+                    ['offset', offset.toString()],
+                    ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
+                    ['filter[field]', 'date.created'],
+                    ['filter[value][from]', dateStr],
+                    ['fields[include][]', 'title'],
+                    ['fields[include][]', 'body'],
+                    ['fields[include][]', 'url'],
+                    ['fields[include][]', 'date'],
+                    ['fields[include][]', 'primary_country']
+                  ]);
+
+                  const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
+
+                  const res = await fetch(url);
+                  const data = await res.json();
+
+                  if (!data.data || data.data.length === 0) {
+                    console.log("No more data from ReliefWeb");
+                    break;
+                  }
+
+                  // Send to Server for Saving
+                  if (btn) btn.innerHTML = `💾 Saving batch ${i + 1}/${MAX_LOOPS}...`;
+
+                  const saveRes = await fetch('/api/ingest/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reports: data.data })
+                  });
+
+                  const saveResult = await saveRes.json();
+                  if (saveResult.success) {
+                    totalStats.processed += saveResult.processed || 0;
+                    totalStats.inserted += saveResult.inserted || 0;
+                    totalStats.errors += saveResult.errors || 0;
+                  }
+
+                  totalProcessed += data.data.length;
+                  await new Promise(r => setTimeout(r, 500)); // Be nice to API
                 }
 
-                console.log("Population result:", result)
-                alert(`Population Started! Processed: ${result.processed}. Check logs for details.`)
+                alert(`Success! Processed ${totalStats.processed} items. Inserted ${totalStats.inserted} new conflicts.`);
+                fetchConflicts();
 
-                // Refresh map
-                fetchConflicts()
-
-              } catch (error: any) {
-                console.error('Error populating history:', error)
-                alert(`Error: ${error.message}`)
+              } catch (e: any) {
+                console.error('Backfill failed:', e);
+                alert(`Backfill Error: ${e.message}`);
               } finally {
-                setLoading(false)
-              } if (btn) btn.innerHTML = '📜 Populate History';
+                setLoading(false);
+                if (btn) btn.innerHTML = '📜 Populate History (5 Years)';
+              }
             }}
             id="backfill-btn"
             className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
