@@ -370,47 +370,96 @@ export default function Home() {
         />
       )}
 
-      {/* Cluster Sidebar */}
+      {/* Cluster Sidebar: Situation Report */}
       {showClusterSidebar && (
-        <div className="absolute right-0 top-0 h-full w-[500px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col">
+        <div className="absolute right-0 top-0 h-full w-[400px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
           {/* Header */}
-          <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+          <div className="p-5 border-b border-slate-700 flex justify-between items-start bg-slate-900">
             <div>
-              <h3 className="text-lg font-bold text-white">Cluster Details</h3>
-              <p className="text-xs text-slate-400 mt-1">{clusterConflicts.length} conflicts in this area</p>
+              <div className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Situation Report</div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                {/* Logic to find location name frequency */}
+                {clusterConflicts[0]?.location_name || 'Multiple Locations'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Live Intel • {clusterConflicts.length} Reports
+              </p>
             </div>
             <button
               onClick={() => setShowClusterSidebar(false)}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
+          {/* Intel Stats */}
+          <div className="grid grid-cols-2 gap-px bg-slate-700/50 border-b border-slate-700">
+            <div className="bg-slate-900 p-4">
+              <div className="text-[10px] text-slate-500 uppercase">Primary Threat</div>
+              <div className="text-sm font-bold text-red-400 mt-0.5">
+                {/* Find most common category */}
+                {Object.entries(clusterConflicts.reduce((acc, curr) => {
+                  acc[curr.category] = (acc[curr.category] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'}
+              </div>
+            </div>
+            <div className="bg-slate-900 p-4">
+              <div className="text-[10px] text-slate-500 uppercase">Intensity Level</div>
+              <div className="text-sm font-bold text-orange-400 mt-0.5">
+                {/* Max Severity */}
+                {Math.max(...clusterConflicts.map(c => c.severity)) >= 4 ? 'CRITICAL' : 'ELEVATED'}
+              </div>
+            </div>
+          </div>
+
           {/* Scrollable List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {clusterConflicts.map((conflict) => (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-900/95 py-2 backdrop-blur z-10 border-b border-slate-800">
+              Latest Updates
+            </div>
+
+            {clusterConflicts.slice(0, 50).map((conflict, i) => (
               <a
                 key={conflict.id}
                 href={conflict.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-blue-500 rounded-lg p-3 transition-all group"
+                className="block relative pl-6 pb-2 border-l border-slate-800 hover:border-blue-500/50 transition-colors group"
               >
-                <div className="flex items-start gap-2 mb-2">
-                  <span className="text-lg">{conflict.category === 'Armed Conflict' ? '⚔️' : conflict.category === 'Protest' ? '📣' : conflict.category === 'Political Unrest' ? '⚠️' : '📍'}</span>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
-                      {conflict.title}
-                    </h4>
-                    <p className="text-xs text-slate-400 mt-1">
-                      <span className="text-orange-400 font-semibold">{conflict.location_name}</span> • {format(new Date(conflict.published_at), 'MMM d, yyyy')}
-                    </p>
+                {/* Timeline dot */}
+                <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${i === 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'
+                  }`}></div>
+
+                <div className="bg-slate-800/30 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50 rounded-lg p-3 transition-all group-hover:shadow-lg">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${conflict.severity >= 4 ? 'bg-red-600' : 'bg-slate-600'
+                      }`}>
+                      {conflict.category}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {format(new Date(conflict.published_at), 'HH:mm')}
+                    </span>
                   </div>
+
+                  <h4 className="text-sm font-medium text-slate-200 group-hover:text-blue-400 transition-colors leading-snug mb-1">
+                    {conflict.title}
+                  </h4>
+
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {conflict.description}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-2">{conflict.description}</p>
               </a>
             ))}
+
+            {clusterConflicts.length > 50 && (
+              <div className="text-center py-4 text-xs text-slate-500 italic">
+                + {clusterConflicts.length - 50} more reports not shown for clarity
+              </div>
+            )}
           </div>
         </div>
       )}
