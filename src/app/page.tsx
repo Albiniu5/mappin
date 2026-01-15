@@ -160,6 +160,17 @@ export default function Home() {
     return filteredConflicts;
   }, [allConflicts, currentDate, filteredConflicts]);
 
+  // Ensure safe max date for timeline
+  const timelineMaxDate = useMemo(() => {
+    try {
+      if (!dateRange.max) return new Date();
+      const now = new Date();
+      return dateRange.max > now ? dateRange.max : now;
+    } catch (e) {
+      return new Date();
+    }
+  }, [dateRange.max]);
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-slate-950">
 
@@ -392,7 +403,7 @@ export default function Home() {
           date={currentDate}
           setDate={(d) => setCurrentDate(d)}
           minDate={dateRange.min}
-          maxDate={new Date(Math.max(dateRange.max.getTime(), new Date().getTime()))}
+          maxDate={timelineMaxDate}
           isPlaying={isPlaying}
           onPlayToggle={() => setIsPlaying(!isPlaying)}
           playbackSpeed={playbackSpeed}
