@@ -76,7 +76,6 @@ export default function Home() {
         console.error('Error refreshing feed:', error)
       }
     }
-  }
 
     // Initial call
     triggerFeedRefresh()
@@ -84,406 +83,406 @@ export default function Home() {
     // Poll every 30 minutes (30 * 60 * 1000)
     const interval = setInterval(triggerFeedRefresh, 30 * 60 * 1000);
 
-  return () => clearInterval(interval);
-}, [])
+    return () => clearInterval(interval);
+  }, [])
 
 
 
-// Auto-advance date when playing
-useEffect(() => {
-  let interval: NodeJS.Timeout
+  // Auto-advance date when playing
+  useEffect(() => {
+    let interval: NodeJS.Timeout
 
-  if (isPlaying) {
-    interval = setInterval(() => {
-      setCurrentDate(prev => {
-        if (!prev) return new Date()
-        const next = new Date(prev)
-        next.setDate(next.getDate() + 1)
-        // Stop if we reach today/future
-        if (next > new Date()) {
-          setIsPlaying(false)
-          return prev
-        }
-        return next
-      })
-    }, 500 / playbackSpeed) // Speed up based on playbackSpeed
-  }
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setCurrentDate(prev => {
+          if (!prev) return new Date()
+          const next = new Date(prev)
+          next.setDate(next.getDate() + 1)
+          // Stop if we reach today/future
+          if (next > new Date()) {
+            setIsPlaying(false)
+            return prev
+          }
+          return next
+        })
+      }, 500 / playbackSpeed) // Speed up based on playbackSpeed
+    }
 
-  return () => {
-    if (interval) clearInterval(interval)
-  }
-}, [isPlaying, playbackSpeed])
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isPlaying, playbackSpeed])
 
-// Filter conflicts based on selected date, search text, and category
-const filteredConflicts = useMemo(() => {
-  return allConflicts.filter(c => {
-    const pubDate = new Date(c.published_at)
+  // Filter conflicts based on selected date, search text, and category
+  const filteredConflicts = useMemo(() => {
+    return allConflicts.filter(c => {
+      const pubDate = new Date(c.published_at)
 
-    // If "Today" (Live Mode) is selected, show ALL history (clusters handle performance)
-    // If a specific past date is selected, show ONLY that date
+      // If "Today" (Live Mode) is selected, show ALL history (clusters handle performance)
+      // If a specific past date is selected, show ONLY that date
 
-    const isToday = currentDate
-      ? currentDate.toDateString() === new Date().toDateString()
-      : true;
+      const isToday = currentDate
+        ? currentDate.toDateString() === new Date().toDateString()
+        : true;
 
-    const isWithinRange = currentDate
-      ? (isToday ? true : pubDate.toDateString() === currentDate.toDateString())
-      : true;
+      const isWithinRange = currentDate
+        ? (isToday ? true : pubDate.toDateString() === currentDate.toDateString())
+        : true;
 
-    const matchesSearch = searchTerm === '' ||
-      c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.location_name && c.location_name.toLowerCase().includes(searchTerm.toLowerCase())) || false
+      const matchesSearch = searchTerm === '' ||
+        c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.location_name && c.location_name.toLowerCase().includes(searchTerm.toLowerCase())) || false
 
-    const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory
+      const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory
 
-    return isWithinRange && matchesSearch && matchesCategory
-  })
-}, [allConflicts, currentDate, searchTerm, selectedCategory])
+      return isWithinRange && matchesSearch && matchesCategory
+    })
+  }, [allConflicts, currentDate, searchTerm, selectedCategory])
 
-return (
-  <main className="relative h-screen w-screen overflow-hidden bg-slate-950">
+  return (
+    <main className="relative h-screen w-screen overflow-hidden bg-slate-950">
 
-    {/* Header Overlay */}
-    <div className="absolute top-0 left-0 w-full p-6 z-[1000] pointer-events-none">
-      <div className="flex justify-between items-start pointer-events-auto">
-        <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
-            Global Conflict Tracker
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">Real-time situational awareness</p>
+      {/* Header Overlay */}
+      <div className="absolute top-0 left-0 w-full p-6 z-[1000] pointer-events-none">
+        <div className="flex justify-between items-start pointer-events-auto">
+          <div>
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
+              Global Conflict Tracker
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness</p>
 
-          {/* Stats Panel */}
-          <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
-            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">Active Conflicts</div>
-            <div className="text-3xl font-bold text-blue-400">{filteredConflicts.length}</div>
-            <div className="mt-2 flex gap-2 text-[10px]">
-              <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded">
-                ⚔️ {filteredConflicts.filter(c => c.category === 'Armed Conflict').length}
-              </span>
-              <span className="bg-amber-600/20 text-amber-400 px-2 py-1 rounded">
-                📣 {filteredConflicts.filter(c => c.category === 'Protest').length}
-              </span>
-              <span className="bg-orange-600/20 text-orange-400 px-2 py-1 rounded">
-                ⚠️ {filteredConflicts.filter(c => c.category === 'Political Unrest').length}
-              </span>
+            {/* Stats Panel */}
+            <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
+              <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">Active Conflicts</div>
+              <div className="text-3xl font-bold text-blue-400">{filteredConflicts.length}</div>
+              <div className="mt-2 flex gap-2 text-[10px]">
+                <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded">
+                  ⚔️ {filteredConflicts.filter(c => c.category === 'Armed Conflict').length}
+                </span>
+                <span className="bg-amber-600/20 text-amber-400 px-2 py-1 rounded">
+                  📣 {filteredConflicts.filter(c => c.category === 'Protest').length}
+                </span>
+                <span className="bg-orange-600/20 text-orange-400 px-2 py-1 rounded">
+                  ⚠️ {filteredConflicts.filter(c => c.category === 'Political Unrest').length}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex gap-2">
-          <button className="bg-slate-900/80 backdrop-blur border border-slate-700 hover:border-blue-500 hover:text-blue-400 text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium">
-            About
-          </button>
+          <div className="flex gap-2">
+            <button className="bg-slate-900/80 backdrop-blur border border-slate-700 hover:border-blue-500 hover:text-blue-400 text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium">
+              About
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Search and Filters Overlay (Top Right) */}
-    <div className="absolute top-6 right-6 z-[1000] flex flex-col gap-3 items-end pointer-events-none">
+      {/* Search and Filters Overlay (Top Right) */}
+      <div className="absolute top-6 right-6 z-[1000] flex flex-col gap-3 items-end pointer-events-none">
 
-      {/* Filter Controls */}
-      <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-3 w-80 transition-all">
-        {/* Search Input with Icon */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search location or keyword..."
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
+        {/* Filter Controls */}
+        <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-3 w-80 transition-all">
+          {/* Search Input with Icon */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search location or keyword..."
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filters */}
+          <div>
+            <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mb-2">Filter by Category</div>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium ${selectedCategory === cat
+                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
+                    : 'bg-slate-800/50 border-slate-600 text-slate-400 hover:border-slate-500 hover:bg-slate-800'
+                    }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Admin: Appname Input */}
+          <div className="w-full mt-2">
+            <input
+              type="text"
+              placeholder="ReliefWeb Appname (e.g. my-app-v1)"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 mb-1"
+              id="appname-input"
+            />
+            <p className="text-[9px] text-slate-500">
+              Required for backfill. <a href="https://apidoc.reliefweb.int/parameters#appname" target="_blank" className="underline hover:text-blue-400">Register here</a> if blocked.
+            </p>
+          </div>
+
+          {/* Admin: Backfill Button */}
+          <button
+            onClick={async () => {
+              const btn = document.getElementById('backfill-btn');
+              const input = document.getElementById('appname-input') as HTMLInputElement;
+              const customAppname = input?.value?.trim();
+
+              if (btn) btn.innerHTML = '⏳ Initializing...';
+
+              setLoading(true);
+
+              try {
+                // Configuration
+                const BASE_URL = 'https://api.reliefweb.int/v1/reports';
+                const MAX_LOOPS = 10;
+                const BATCH_SIZE = 1000;
+                const fiveYearsAgo = new Date();
+                fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+                const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
+
+                let totalProcessed = 0;
+                let totalStats = { processed: 0, inserted: 0, errors: 0 };
+
+                for (let i = 0; i < MAX_LOOPS; i++) {
+                  const offset = i * BATCH_SIZE;
+                  if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
+
+                  // Priority: Custom Input -> Defaults
+                  const APPNAMES = [customAppname, 'rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'].filter(Boolean);
+                  let data;
+                  let usedAppname;
+
+                  // Rotation Loop
+                  for (const appname of APPNAMES) {
+                    try {
+                      console.log(`Trying appname: ${appname}`);
+                      const params = new URLSearchParams([
+                        ['appname', appname],
+                        ['profile', 'list'],
+                        ['preset', 'latest'],
+                        ['limit', BATCH_SIZE.toString()],
+                        ['offset', offset.toString()],
+                        ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
+                        ['filter[field]', 'date.created'],
+                        ['filter[value][from]', dateStr],
+                        ['fields[include][]', 'title'],
+                        ['fields[include][]', 'body'],
+                        ['fields[include][]', 'url'],
+                        ['fields[include][]', 'date'],
+                        ['fields[include][]', 'primary_country']
+                      ]);
+
+                      const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
+                      const res = await fetch(url); // Standard fetch, CORS enabled by default
+                      const json = await res.json();
+
+                      if (!json.error) {
+                        data = json;
+                        usedAppname = appname;
+                        console.log(`Success with ${appname}`);
+                        break; // Success!
+                      } else {
+                        console.warn(`Appname ${appname} returned API error:`, json.error);
+                      }
+                    } catch (e) {
+                      console.warn(`Appname ${appname} network error:`, e);
+                    }
+                  }
+
+                  if (!data || !data.data || data.data.length === 0) {
+                    console.warn("No more data from ReliefWeb (or all keys blocked)", data);
+                    if (i === 0) alert(`Warning: Batch 1 failed. All keys blocked or no data.`);
+                    break;
+                  }
+
+                  // Send to Server for Saving
+                  if (btn) btn.innerHTML = `💾 Saving batch ${i + 1}/${MAX_LOOPS}...`;
+
+                  const saveRes = await fetch('/api/ingest/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reports: data.data })
+                  });
+
+                  const saveResult = await saveRes.json();
+                  if (saveResult.success) {
+                    totalStats.processed += saveResult.processed || 0;
+                    totalStats.inserted += saveResult.inserted || 0;
+                    totalStats.errors += saveResult.errors || 0;
+                  }
+
+                  totalProcessed += data.data.length;
+                  await new Promise(r => setTimeout(r, 500)); // Be nice to API
+                }
+
+                alert(`Success! Processed ${totalStats.processed} items. Inserted ${totalStats.inserted} new conflicts.`);
+                fetchConflicts();
+
+              } catch (e: any) {
+                console.error('Backfill failed:', e);
+                alert(`Backfill Error: ${e.message}`);
+              } finally {
+                setLoading(false);
+                if (btn) btn.innerHTML = '📜 Populate History (5 Years)';
+              }
+            }}
+            id="backfill-btn"
+            className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
+          >
+            <DatabaseIcon size={12} />
+            📜 Populate History (5 Years)
+          </button>
+
+          {/* Results Count */}
+          <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-700">
+            Showing {filteredConflicts.length} of {allConflicts.length} conflicts
+          </div>
+        </div>
+      </div>
+
+      {/* Map Layer */}
+      <div className="absolute inset-0 z-0">
+        <MapWrapper
+          conflicts={filteredConflicts}
+          onClusterClick={(conflicts) => {
+            setClusterConflicts(conflicts);
+            setShowClusterSidebar(true);
+          }}
+        />
+      </div>
+
+      {/* Timeline Controls */}
+      {currentDate && (
+        <Timeline
+          date={currentDate}
+          setDate={(d) => setCurrentDate(d)}
+          minDate={dateRange.min}
+          maxDate={dateRange.max}
+          isPlaying={isPlaying}
+          onPlayToggle={() => setIsPlaying(!isPlaying)}
+          playbackSpeed={playbackSpeed}
+          setPlaybackSpeed={setPlaybackSpeed}
+        />
+      )}
+
+      {/* Cluster Sidebar: Situation Report */}
+      {showClusterSidebar && (
+        <div className="absolute right-0 top-0 h-full w-[400px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          {/* Header */}
+          <div className="p-5 border-b border-slate-700 flex justify-between items-start bg-slate-900">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Situation Report</div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                {/* Logic to find location name frequency */}
+                {clusterConflicts[0]?.location_name || 'Multiple Locations'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Live Intel • {clusterConflicts.length} Reports
+              </p>
+            </div>
             <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              onClick={() => setShowClusterSidebar(false)}
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
             >
               <X className="w-4 h-4" />
             </button>
-          )}
-        </div>
-
-        {/* Category Filters */}
-        <div>
-          <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mb-2">Filter by Category</div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium ${selectedCategory === cat
-                  ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
-                  : 'bg-slate-800/50 border-slate-600 text-slate-400 hover:border-slate-500 hover:bg-slate-800'
-                  }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Admin: Appname Input */}
-        <div className="w-full mt-2">
-          <input
-            type="text"
-            placeholder="ReliefWeb Appname (e.g. my-app-v1)"
-            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 mb-1"
-            id="appname-input"
-          />
-          <p className="text-[9px] text-slate-500">
-            Required for backfill. <a href="https://apidoc.reliefweb.int/parameters#appname" target="_blank" className="underline hover:text-blue-400">Register here</a> if blocked.
-          </p>
-        </div>
-
-        {/* Admin: Backfill Button */}
-        <button
-          onClick={async () => {
-            const btn = document.getElementById('backfill-btn');
-            const input = document.getElementById('appname-input') as HTMLInputElement;
-            const customAppname = input?.value?.trim();
-
-            if (btn) btn.innerHTML = '⏳ Initializing...';
-
-            setLoading(true);
-
-            try {
-              // Configuration
-              const BASE_URL = 'https://api.reliefweb.int/v1/reports';
-              const MAX_LOOPS = 10;
-              const BATCH_SIZE = 1000;
-              const fiveYearsAgo = new Date();
-              fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-              const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
-
-              let totalProcessed = 0;
-              let totalStats = { processed: 0, inserted: 0, errors: 0 };
-
-              for (let i = 0; i < MAX_LOOPS; i++) {
-                const offset = i * BATCH_SIZE;
-                if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
-
-                // Priority: Custom Input -> Defaults
-                const APPNAMES = [customAppname, 'rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'].filter(Boolean);
-                let data;
-                let usedAppname;
-
-                // Rotation Loop
-                for (const appname of APPNAMES) {
-                  try {
-                    console.log(`Trying appname: ${appname}`);
-                    const params = new URLSearchParams([
-                      ['appname', appname],
-                      ['profile', 'list'],
-                      ['preset', 'latest'],
-                      ['limit', BATCH_SIZE.toString()],
-                      ['offset', offset.toString()],
-                      ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
-                      ['filter[field]', 'date.created'],
-                      ['filter[value][from]', dateStr],
-                      ['fields[include][]', 'title'],
-                      ['fields[include][]', 'body'],
-                      ['fields[include][]', 'url'],
-                      ['fields[include][]', 'date'],
-                      ['fields[include][]', 'primary_country']
-                    ]);
-
-                    const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
-                    const res = await fetch(url); // Standard fetch, CORS enabled by default
-                    const json = await res.json();
-
-                    if (!json.error) {
-                      data = json;
-                      usedAppname = appname;
-                      console.log(`Success with ${appname}`);
-                      break; // Success!
-                    } else {
-                      console.warn(`Appname ${appname} returned API error:`, json.error);
-                    }
-                  } catch (e) {
-                    console.warn(`Appname ${appname} network error:`, e);
-                  }
-                }
-
-                if (!data || !data.data || data.data.length === 0) {
-                  console.warn("No more data from ReliefWeb (or all keys blocked)", data);
-                  if (i === 0) alert(`Warning: Batch 1 failed. All keys blocked or no data.`);
-                  break;
-                }
-
-                // Send to Server for Saving
-                if (btn) btn.innerHTML = `💾 Saving batch ${i + 1}/${MAX_LOOPS}...`;
-
-                const saveRes = await fetch('/api/ingest/save', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ reports: data.data })
-                });
-
-                const saveResult = await saveRes.json();
-                if (saveResult.success) {
-                  totalStats.processed += saveResult.processed || 0;
-                  totalStats.inserted += saveResult.inserted || 0;
-                  totalStats.errors += saveResult.errors || 0;
-                }
-
-                totalProcessed += data.data.length;
-                await new Promise(r => setTimeout(r, 500)); // Be nice to API
-              }
-
-              alert(`Success! Processed ${totalStats.processed} items. Inserted ${totalStats.inserted} new conflicts.`);
-              fetchConflicts();
-
-            } catch (e: any) {
-              console.error('Backfill failed:', e);
-              alert(`Backfill Error: ${e.message}`);
-            } finally {
-              setLoading(false);
-              if (btn) btn.innerHTML = '📜 Populate History (5 Years)';
-            }
-          }}
-          id="backfill-btn"
-          className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
-        >
-          <DatabaseIcon size={12} />
-          📜 Populate History (5 Years)
-        </button>
-
-        {/* Results Count */}
-        <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-700">
-          Showing {filteredConflicts.length} of {allConflicts.length} conflicts
-        </div>
-      </div>
-    </div>
-
-    {/* Map Layer */}
-    <div className="absolute inset-0 z-0">
-      <MapWrapper
-        conflicts={filteredConflicts}
-        onClusterClick={(conflicts) => {
-          setClusterConflicts(conflicts);
-          setShowClusterSidebar(true);
-        }}
-      />
-    </div>
-
-    {/* Timeline Controls */}
-    {currentDate && (
-      <Timeline
-        date={currentDate}
-        setDate={(d) => setCurrentDate(d)}
-        minDate={dateRange.min}
-        maxDate={dateRange.max}
-        isPlaying={isPlaying}
-        onPlayToggle={() => setIsPlaying(!isPlaying)}
-        playbackSpeed={playbackSpeed}
-        setPlaybackSpeed={setPlaybackSpeed}
-      />
-    )}
-
-    {/* Cluster Sidebar: Situation Report */}
-    {showClusterSidebar && (
-      <div className="absolute right-0 top-0 h-full w-[400px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="p-5 border-b border-slate-700 flex justify-between items-start bg-slate-900">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Situation Report</div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              {/* Logic to find location name frequency */}
-              {clusterConflicts[0]?.location_name || 'Multiple Locations'}
-            </h3>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Live Intel • {clusterConflicts.length} Reports
-            </p>
-          </div>
-          <button
-            onClick={() => setShowClusterSidebar(false)}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Intel Stats */}
-        <div className="grid grid-cols-2 gap-px bg-slate-700/50 border-b border-slate-700">
-          <div className="bg-slate-900 p-4">
-            <div className="text-[10px] text-slate-500 uppercase">Primary Threat</div>
-            <div className="text-sm font-bold text-red-400 mt-0.5">
-              {/* Find most common category */}
-              {Object.entries(clusterConflicts.reduce((acc, curr) => {
-                acc[curr.category] = (acc[curr.category] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'}
-            </div>
-          </div>
-          <div className="bg-slate-900 p-4">
-            <div className="text-[10px] text-slate-500 uppercase">Intensity Level</div>
-            <div className="text-sm font-bold text-orange-400 mt-0.5">
-              {/* Max Severity */}
-              {Math.max(...clusterConflicts.map(c => c.severity)) >= 4 ? 'CRITICAL' : 'ELEVATED'}
-            </div>
-          </div>
-        </div>
-
-        {/* Scrollable List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-900/95 py-2 backdrop-blur z-10 border-b border-slate-800">
-            Latest Updates
           </div>
 
-          {clusterConflicts.slice(0, 50).map((conflict, i) => (
-            <a
-              key={conflict.id}
-              href={conflict.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block relative pl-6 pb-2 border-l border-slate-800 hover:border-blue-500/50 transition-colors group"
-            >
-              {/* Timeline dot */}
-              <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${i === 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'
-                }`}></div>
-
-              <div className="bg-slate-800/30 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50 rounded-lg p-3 transition-all group-hover:shadow-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${conflict.severity >= 4 ? 'bg-red-600' : 'bg-slate-600'
-                    }`}>
-                    {conflict.category}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {format(new Date(conflict.published_at), 'HH:mm')}
-                  </span>
-                </div>
-
-                <h4 className="text-sm font-medium text-slate-200 group-hover:text-blue-400 transition-colors leading-snug mb-1">
-                  {conflict.title}
-                </h4>
-
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                  {conflict.description}
-                </p>
+          {/* Intel Stats */}
+          <div className="grid grid-cols-2 gap-px bg-slate-700/50 border-b border-slate-700">
+            <div className="bg-slate-900 p-4">
+              <div className="text-[10px] text-slate-500 uppercase">Primary Threat</div>
+              <div className="text-sm font-bold text-red-400 mt-0.5">
+                {/* Find most common category */}
+                {Object.entries(clusterConflicts.reduce((acc, curr) => {
+                  acc[curr.category] = (acc[curr.category] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'}
               </div>
-            </a>
-          ))}
-
-          {clusterConflicts.length > 50 && (
-            <div className="text-center py-4 text-xs text-slate-500 italic">
-              + {clusterConflicts.length - 50} more reports not shown for clarity
             </div>
-          )}
+            <div className="bg-slate-900 p-4">
+              <div className="text-[10px] text-slate-500 uppercase">Intensity Level</div>
+              <div className="text-sm font-bold text-orange-400 mt-0.5">
+                {/* Max Severity */}
+                {Math.max(...clusterConflicts.map(c => c.severity)) >= 4 ? 'CRITICAL' : 'ELEVATED'}
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-900/95 py-2 backdrop-blur z-10 border-b border-slate-800">
+              Latest Updates
+            </div>
+
+            {clusterConflicts.slice(0, 50).map((conflict, i) => (
+              <a
+                key={conflict.id}
+                href={conflict.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block relative pl-6 pb-2 border-l border-slate-800 hover:border-blue-500/50 transition-colors group"
+              >
+                {/* Timeline dot */}
+                <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${i === 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'
+                  }`}></div>
+
+                <div className="bg-slate-800/30 hover:bg-slate-800 border border-slate-700/50 hover:border-blue-500/50 rounded-lg p-3 transition-all group-hover:shadow-lg">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${conflict.severity >= 4 ? 'bg-red-600' : 'bg-slate-600'
+                      }`}>
+                      {conflict.category}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {format(new Date(conflict.published_at), 'HH:mm')}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-medium text-slate-200 group-hover:text-blue-400 transition-colors leading-snug mb-1">
+                    {conflict.title}
+                  </h4>
+
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {conflict.description}
+                  </p>
+                </div>
+              </a>
+            ))}
+
+            {clusterConflicts.length > 50 && (
+              <div className="text-center py-4 text-xs text-slate-500 italic">
+                + {clusterConflicts.length - 50} more reports not shown for clarity
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* News Ticker */}
-    <NewsTicker conflicts={filteredConflicts} />
+      {/* News Ticker */}
+      <NewsTicker conflicts={filteredConflicts} />
 
-    {/* Loading Indicator */}
-    {loading && (
-      <div className="absolute inset-0 z-[2000] bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    )}
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="absolute inset-0 z-[2000] bg-slate-950 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
 
-  </main>
-)
+    </main>
+  )
 }
