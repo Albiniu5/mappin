@@ -19,7 +19,7 @@ export async function GET() {
 
         // Build query params
         const params = new URLSearchParams([
-            ['appname', 'rwint-user-0'],
+            ['appname', 'apidoc'],
             ['profile', 'list'],
             ['preset', 'latest'],
             ['limit', '1'], // Just check 1 item to get count
@@ -29,7 +29,11 @@ export async function GET() {
             // ['sort[]', 'date.created:desc']
         ]);
 
-        const response = await fetch(`${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`);
+        const response = await fetch(`${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
         const data = await response.json();
 
         if (!data.data || !Array.isArray(data.data)) {
@@ -69,7 +73,7 @@ export async function GET() {
             const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
             const params = new URLSearchParams([
-                ['appname', 'rwint-user-0'], // Standard ReliefWeb API public appname
+                ['appname', 'apidoc'], // Standard ReliefWeb API public appname
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],
@@ -86,7 +90,11 @@ export async function GET() {
             ]);
 
             const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
-            const resWithFields = await fetch(url);
+            const resWithFields = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            });
             const richData = await resWithFields.json();
 
             if (!richData.data || richData.data.length === 0) {
