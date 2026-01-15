@@ -14,27 +14,22 @@ export async function GET() {
         // Calculate date 5 years ago
         const fiveYearsAgo = new Date();
         fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-        const dateStr = fiveYearsAgo.toISOString();
+        // ReliefWeb API rejects milliseconds. Format: YYYY-MM-DDTHH:MM:SS+00:00
+        const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
         // Build query params
-        // Filter: 
-        // - Date > 5 years ago
-        // - Content contains "conflict" or "war" or "attack"
-        const params = new URLSearchParams({
-            'appname': 'mappin-app',
-            'profile': 'list',
-            'preset': 'latest',
-            'limit': '1000', // Fetch max allowed items for deep history
-            'filter[operator]': 'AND',
-            'filter[conditions][0][field]': 'date.created',
-            'filter[conditions][0][value]': dateStr,
-            'filter[conditions][0][operator]': '>=',
-            'filter[conditions][1][field]': 'body', // Search body for keywords
-            'filter[conditions][1][value]': 'conflict OR war OR attack OR military OR violence',
-            // 'sort[]': 'date.created:desc' // Default is desc
-        });
+        const params = new URLSearchParams([
+            ['appname', 'rwint-user-0'],
+            ['profile', 'list'],
+            ['preset', 'latest'],
+            ['limit', '1'], // Just check 1 item to get count
+            ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
+            ['filter[field]', 'date.created'],
+            ['filter[value][from]', dateStr],
+            // ['sort[]', 'date.created:desc']
+        ]);
 
-        const response = await fetch(`${BASE_URL}?${params.toString()}`);
+        const response = await fetch(`${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`);
         const data = await response.json();
 
         if (!data.data || !Array.isArray(data.data)) {
