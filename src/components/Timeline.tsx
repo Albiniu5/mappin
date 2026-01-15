@@ -20,14 +20,15 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
     const [showCalendar, setShowCalendar] = useState(false)
     const [range, setRange] = useState({
         start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
-        end: maxDate || new Date()
+        end: new Date()
     })
 
     useEffect(() => {
         setMounted(true)
+        const today = new Date()
         setRange({
             start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
-            end: maxDate || new Date()
+            end: maxDate && maxDate > today ? maxDate : today
         })
     }, [minDate, maxDate])
 
