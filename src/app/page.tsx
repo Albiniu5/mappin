@@ -46,7 +46,7 @@ export default function Home() {
         const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
         setDateRange({ min: minDate, max: maxDate })
         // Only set current date on first load if null
-        if (!currentDate) setCurrentDate(maxDate)
+        if (!currentDate) setCurrentDate(new Date())
       }
     }
     if (error) console.error('Error fetching conflicts:', error)
@@ -150,7 +150,9 @@ export default function Home() {
     if (isToday) {
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      return allConflicts.filter(c => new Date(c.published_at) > oneDayAgo);
+      const recent = allConflicts.filter(c => new Date(c.published_at) > oneDayAgo);
+      console.log(`📊 Stats: Total=${allConflicts.length}, Recent24h=${recent.length}, Threshold=${oneDayAgo.toISOString()}`);
+      return recent;
     }
 
     return filteredConflicts;
@@ -170,7 +172,7 @@ export default function Home() {
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
-              <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">Active Conflicts</div>
+              <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">24h Activity</div>
               <div className="text-3xl font-bold text-blue-400">{statsConflicts.length}</div>
               <div className="mt-2 flex gap-2 text-[10px]">
                 <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded">
