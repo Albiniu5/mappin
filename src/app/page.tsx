@@ -392,7 +392,7 @@ export default function Home() {
           date={currentDate}
           setDate={(d) => setCurrentDate(d)}
           minDate={dateRange.min}
-          maxDate={dateRange.max}
+          maxDate={new Date(Math.max(dateRange.max.getTime(), new Date().getTime()))}
           isPlaying={isPlaying}
           onPlayToggle={() => setIsPlaying(!isPlaying)}
           playbackSpeed={playbackSpeed}
