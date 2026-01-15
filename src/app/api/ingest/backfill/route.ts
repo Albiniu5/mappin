@@ -71,7 +71,7 @@ export async function GET() {
             const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
             const params = new URLSearchParams([
-                ['appname', 'mappin-app-v1'],
+                ['appname', 'rwint-user-0'], // Standard ReliefWeb API public appname
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],

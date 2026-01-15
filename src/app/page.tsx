@@ -218,12 +218,28 @@ export default function Home() {
               const btn = document.getElementById('backfill-btn');
               if (btn) btn.innerHTML = '⏳ Loading...';
               try {
-                await fetch('/api/ingest/backfill');
-                alert('History populated! Please refresh the page.');
-              } catch (e) {
-                alert('Error population history');
-              }
-              if (btn) btn.innerHTML = '📜 Populate History';
+                setLoading(true)
+                alert("Starting population... This may take 1-2 minutes.")
+                const response = await fetch('/api/ingest/backfill')
+
+                const result = await response.json()
+
+                if (!response.ok) {
+                  throw new Error(result.error || 'Failed to start population')
+                }
+
+                console.log("Population result:", result)
+                alert(`Population Started! Processed: ${result.processed}. Check logs for details.`)
+
+                // Refresh map
+                fetchConflicts()
+
+              } catch (error: any) {
+                console.error('Error populating history:', error)
+                alert(`Error: ${error.message}`)
+              } finally {
+                setLoading(false)
+              } if (btn) btn.innerHTML = '📜 Populate History';
             }}
             id="backfill-btn"
             className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
