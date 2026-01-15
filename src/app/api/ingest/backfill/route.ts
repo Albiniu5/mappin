@@ -11,6 +11,10 @@ export async function GET() {
     try {
         console.log('Starting historical data backfill...');
 
+        // Calculate date 5 years ago
+        const fiveYearsAgo = new Date();
+        fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+
         // ReliefWeb API rejects milliseconds. Format: YYYY-MM-DDTHH:MM:SS+00:00
         const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
