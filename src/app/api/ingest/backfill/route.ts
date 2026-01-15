@@ -33,7 +33,10 @@ export async function GET() {
         const data = await response.json();
 
         if (!data.data || !Array.isArray(data.data)) {
-            throw new Error('Invalid response from ReliefWeb API');
+            // @ts-ignore
+            const msg = data.error?.message || 'Unknown error';
+            console.error('ReliefWeb Response:', JSON.stringify(data, null, 2));
+            throw new Error(`ReliefWeb API Error: ${msg}`);
         }
 
         console.log(`Fetched ${data.count} potential reports from ReliefWeb`);
