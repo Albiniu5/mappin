@@ -39,7 +39,7 @@ export async function GET() {
             const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
             const params = new URLSearchParams([
-                ['appname', 'rwint-user-0'], // Standard ReliefWeb API public appname
+                ['appname', 'apidoc'], // Mimic official documentation console
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],
