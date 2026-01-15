@@ -47,6 +47,7 @@ export default function Home() {
         const today = new Date()
         // Ensure maxDate is at least today (so slider always includes today)
         const maxDate = dataMaxDate > today ? dataMaxDate : today
+        console.log(`📅 DateRange: Data=${dataMaxDate.toLocaleDateString()}, Today=${today.toLocaleDateString()}, Using=${maxDate.toLocaleDateString()}`)
         setDateRange({ min: minDate, max: maxDate })
         // Only set current date on first load if null
         if (!currentDate) setCurrentDate(new Date())
