@@ -99,7 +99,14 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                 chunkedLoading
                 showCoverageOnHover={false}
                 spiderfyOnMaxZoom={false}
-                onClick={(e: any) => handleClusterClick(e.layer)}
+                zoomToBoundsOnClick={false} // Disable jarring zoom
+                onClick={(e: any) => {
+                    const cluster = e.layer;
+                    handleClusterClick(cluster);
+                    // Gentle Zoom: Just go 2 levels deeper, don't max out
+                    const map = cluster._map;
+                    map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
+                }}
                 iconCreateFunction={(cluster: any) => {
                     const count = cluster.getChildCount();
                     let sizeClass = 'w-14 h-14 text-base';
