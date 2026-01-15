@@ -112,9 +112,24 @@ export async function GET() {
 
                 let extracted = fallbackExtraction(title, description);
 
+                // Enhancement: Direct lookup in country database
                 if (!extracted && item.fields.primary_country) {
-                    const countryName = item.fields.primary_country.name;
-                    extracted = fallbackExtraction(title + " " + countryName, description);
+                    const countryName = item.fields.primary_country.name.toLowerCase();
+
+                    // Try direct match
+                    if (countries[countryName]) {
+                        extracted = {
+                            latitude: countries[countryName].lat,
+                            longitude: countries[countryName].lon,
+                            location_name: countries[countryName].name,
+                            category: "Armed Conflict", // Default for backfill
+                            severity: 3, // Default
+                            summary: description
+                        };
+                    } else {
+                        // Try fallback with text search
+                        extracted = fallbackExtraction(title + " " + item.fields.primary_country.name, description);
+                    }
                 }
 
                 if (extracted) {

@@ -49,7 +49,7 @@ export function fallbackExtraction(title: string, description: string) {
     };
 
     let foundLoc = { lat: 0, lon: 0, name: "Unknown" };
-    for (const [key, val] of Object.entries(locations)) {
+    for (const [key, val] of Object.entries(cityLocations)) {
         if (text.includes(key)) {
             foundLoc = val;
             break;
