@@ -11,39 +11,12 @@ export async function GET() {
     try {
         console.log('Starting historical data backfill...');
 
-        // Calculate date 5 years ago
-        const fiveYearsAgo = new Date();
-        fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
         // ReliefWeb API rejects milliseconds. Format: YYYY-MM-DDTHH:MM:SS+00:00
         const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
-        // Build query params
-        const params = new URLSearchParams([
-            ['appname', 'apidoc'],
-            ['profile', 'list'],
-            ['preset', 'latest'],
-            ['limit', '1'], // Just check 1 item to get count
-            ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
-            ['filter[field]', 'date.created'],
-            ['filter[value][from]', dateStr],
-            // ['sort[]', 'date.created:desc']
-        ]);
-
-        const response = await fetch(`${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        const data = await response.json();
-
-        if (!data.data || !Array.isArray(data.data)) {
-            // @ts-ignore
-            const msg = data.error?.message || 'Unknown error';
-            console.error('ReliefWeb Response:', JSON.stringify(data, null, 2));
-            throw new Error(`ReliefWeb API Error: ${msg}`);
-        }
-
-        console.log(`Fetched ${data.count} potential reports from ReliefWeb`);
+        // Skip initial check to avoid extra requests/blocks. 
+        // We will detect errors in the main loop consistently.
+        console.log('Starting batch fetch...');
 
         let processed = 0;
         let errors = 0;
@@ -73,7 +46,7 @@ export async function GET() {
             const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
             const params = new URLSearchParams([
-                ['appname', 'apidoc'], // Standard ReliefWeb API public appname
+                ['appname', 'reliefweb-website'], // Mimic official website
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],
@@ -92,7 +65,7 @@ export async function GET() {
             const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
             const resWithFields = await fetch(url, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
             });
             const richData = await resWithFields.json();
