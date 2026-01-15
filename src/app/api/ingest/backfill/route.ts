@@ -67,18 +67,19 @@ export async function GET() {
             const offset = i * BATCH_SIZE;
             console.log(`fetching batch ${i + 1}/${MAX_LOOPS} (offset: ${offset})...`);
 
-            const fieldsParams = new URLSearchParams([
-                ['appname', 'mappin-app'],
+            // ReliefWeb API rejects milliseconds. Format: YYYY-MM-DDTHH:MM:SS+00:00
+            const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
+
+            const params = new URLSearchParams([
+                ['appname', 'mappin-app-v1'],
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],
                 ['offset', offset.toString()],
-                ['filter[operator]', 'AND'],
-                ['filter[conditions][0][field]', 'date.created'],
-                ['filter[conditions][0][value]', dateStr],
-                ['filter[conditions][0][operator]', '>='],
-                ['filter[conditions][1][field]', 'title'],
-                ['filter[conditions][1][value]', 'conflict OR war OR attack OR military OR violence'],
+                // Use query[value] for full-text search (title + body) instead of complex filter
+                ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
+                ['filter[field]', 'date.created'],
+                ['filter[value][from]', dateStr], // Correct range syntax
                 ['fields[include][]', 'title'],
                 ['fields[include][]', 'body'],
                 ['fields[include][]', 'url'],
@@ -86,7 +87,7 @@ export async function GET() {
                 ['fields[include][]', 'primary_country']
             ]);
 
-            const url = `${BASE_URL}?${fieldsParams.toString().replace(/%5B%5D=/g, '[]=')}`;
+            const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
             const resWithFields = await fetch(url);
             const richData = await resWithFields.json();
 
