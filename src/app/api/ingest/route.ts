@@ -13,32 +13,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export function fallbackExtraction(title: string, description: string) {
     const text = (title + " " + description).toLowerCase();
 
-    // Expanded location database with major world regions and conflict zones
-    const locations: Record<string, { lat: number, lon: number, name: string }> = {
+    // Expanded location database
+    // We import the full list from countries.ts but keep the specific city overrides here
+    const cityLocations: Record<string, { lat: number, lon: number, name: string }> = {
         // Middle East
         "gaza": { lat: 31.5, lon: 34.46, name: "Gaza Strip" },
-        "israel": { lat: 31.76, lon: 35.21, name: "Jerusalem, Israel" },
-        "palestine": { lat: 31.9, lon: 35.2, name: "Palestine" },
-        "lebanon": { lat: 33.89, lon: 35.48, name: "Beirut, Lebanon" },
-        "syria": { lat: 33.51, lon: 36.29, name: "Damascus, Syria" },
-        "iraq": { lat: 33.34, lon: 44.39, name: "Baghdad, Iraq" },
-        "iran": { lat: 35.69, lon: 51.42, name: "Tehran, Iran" },
-        "yemen": { lat: 15.36, lon: 44.21, name: "Sanaa, Yemen" },
-        "saudi": { lat: 24.63, lon: 46.72, name: "Riyadh, Saudi Arabia" },
-        "turkey": { lat: 39.93, lon: 32.85, name: "Ankara, Turkey" },
-        "qatar": { lat: 25.35, lon: 51.18, name: "Doha, Qatar" },
-        "jordan": { lat: 31.95, lon: 35.93, name: "Amman, Jordan" },
-
-        // Europe
-        "ukraine": { lat: 50.45, lon: 30.52, name: "Kyiv, Ukraine" },
-        "russia": { lat: 55.75, lon: 37.61, name: "Moscow, Russia" },
-        "poland": { lat: 52.23, lon: 21.01, name: "Warsaw, Poland" },
-        "georgia": { lat: 41.72, lon: 44.79, name: "Tbilisi, Georgia" },
-        "serbia": { lat: 44.82, lon: 20.46, name: "Belgrade, Serbia" },
-        "kosovo": { lat: 42.67, lon: 21.17, name: "Pristina, Kosovo" },
-
-        // Africa
-        "sudan": { lat: 15.59, lon: 32.53, name: "Khartoum, Sudan" },
         "ethiopia": { lat: 9.03, lon: 38.74, name: "Addis Ababa, Ethiopia" },
         "somalia": { lat: 2.04, lon: 45.34, name: "Mogadishu, Somalia" },
         "congo": { lat: -4.32, lon: 15.31, name: "Kinshasa, DRC" },
