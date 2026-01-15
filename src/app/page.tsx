@@ -43,7 +43,10 @@ export default function Home() {
       if (conflicts.length > 0) {
         const dates = conflicts.map(c => new Date(c.published_at))
         const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
-        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+        const dataMaxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+        const today = new Date()
+        // Ensure maxDate is at least today (so slider always includes today)
+        const maxDate = dataMaxDate > today ? dataMaxDate : today
         setDateRange({ min: minDate, max: maxDate })
         // Only set current date on first load if null
         if (!currentDate) setCurrentDate(new Date())
