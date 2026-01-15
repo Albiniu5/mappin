@@ -26,18 +26,7 @@ export async function GET() {
         let errors = 0;
         let inserted = 0;
 
-        for (const report of data.data) {
-            // ReliefWeb list endpoint gives truncated info. 
-            // We usually need to fetch individual item for full body, 
-            // but for mapping, the title + body-snippet might be enough if mapped correctly.
-            // Actually, 'list' profile with 'body' field might populate it? 
-            // Let's check field filtering. 
-            // By default 'list' returns id, title, date, status. 
-            // We want fields[include][]=title,body,url,date,primary_country
 
-            // Re-fetch logic or optimize: 
-            // Better to add fields to the initial query.
-        }
 
         const BATCH_SIZE = 1000;
         const MAX_LOOPS = 10; // Fetch 10,000 items total (API Max)
