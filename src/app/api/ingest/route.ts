@@ -6,11 +6,14 @@ import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/supabase';
 
 
+import { countries } from '@/lib/countries';
+
 // Helper to delay for rate limits
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Comprehensive fallback extraction when AI fails
 export function fallbackExtraction(title: string, description: string) {
+    console.log("Ingest Filter v2.1 (Sabotage Fix) checking: " + title.substring(0, 20));
     const text = (title + " " + description).toLowerCase();
 
     // Expanded location database
@@ -58,7 +61,6 @@ export function fallbackExtraction(title: string, description: string) {
 
     // If no city, check countries
     if (foundLoc.name === "Unknown") {
-        const { countries } = require('@/lib/countries');
         for (const [key, val] of Object.entries(countries)) {
             // @ts-ignore
             if (text.includes(key)) {
