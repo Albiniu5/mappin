@@ -117,27 +117,37 @@ export default function Home() {
 
   // Filter conflicts based on selected date, search text, and category
   const filteredConflicts = useMemo(() => {
+    // Pre-calculate filter values to avoid re-calculating inside the loop
+    const now = new Date();
+    const isToday = currentDate ? currentDate.toDateString() === now.toDateString() : true;
+    const targetDateStr = currentDate ? currentDate.toDateString() : "";
+    const searchLower = searchTerm.toLowerCase();
+
     return allConflicts.filter(c => {
-      const pubDate = new Date(c.published_at)
-
       // If "Today" (Live Mode) is selected, show ALL history (clusters handle performance)
-      // If a specific past date is selected, show ONLY that date
+      if (isToday) {
+        if (searchTerm === '' && selectedCategory === 'All') return true; // Fast path
+      }
 
-      const isToday = currentDate
-        ? currentDate.toDateString() === new Date().toDateString()
-        : true;
+      // 1. Date Check
+      if (!isToday) {
+        const pubDate = new Date(c.published_at);
+        if (pubDate.toDateString() !== targetDateStr) return false;
+      }
 
-      const isWithinRange = currentDate
-        ? (isToday ? true : pubDate.toDateString() === currentDate.toDateString())
-        : true;
+      // 2. Category Check (Fastest first)
+      if (selectedCategory !== 'All' && c.category !== selectedCategory) {
+        return false;
+      }
 
-      const matchesSearch = searchTerm === '' ||
-        c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.location_name && c.location_name.toLowerCase().includes(searchTerm.toLowerCase())) || false
+      // 3. Search Check (Slowest)
+      if (searchTerm !== '') {
+        const titleMatch = c.title.toLowerCase().includes(searchLower);
+        const locMatch = c.location_name && c.location_name.toLowerCase().includes(searchLower);
+        if (!titleMatch && !locMatch) return false;
+      }
 
-      const matchesCategory = selectedCategory === 'All' || c.category === selectedCategory
-
-      return isWithinRange && matchesSearch && matchesCategory
+      return true;
     })
   }, [allConflicts, currentDate, searchTerm, selectedCategory])
 

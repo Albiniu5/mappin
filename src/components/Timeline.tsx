@@ -97,6 +97,15 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                         max={range.end.getTime()}
                         value={date.getTime()}
                         onChange={handleSliderChange}
+                        onMouseUp={(e) => {
+                            // Ensure final value is set
+                            const target = e.target as HTMLInputElement;
+                            setDate(new Date(Number(target.value)));
+                        }}
+                        onTouchEnd={(e) => {
+                            const target = e.target as HTMLInputElement;
+                            setDate(new Date(Number(target.value)));
+                        }}
                         step={24 * 60 * 60 * 1000} // 1 day steps
                         className="relative w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg"
                         suppressHydrationWarning
