@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/supabase';
 import { fallbackExtraction } from '../route';
+import { countries } from '@/lib/countries';
 
 // ReliefWeb API URL
 const BASE_URL = 'https://api.reliefweb.int/v1/reports';
