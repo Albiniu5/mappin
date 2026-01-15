@@ -39,7 +39,7 @@ export async function GET() {
             const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
 
             const params = new URLSearchParams([
-                ['appname', 'reliefweb-website'], // Mimic official website
+                ['appname', 'rwint-user-0'], // Standard ReliefWeb API public appname
                 ['profile', 'list'],
                 ['preset', 'latest'],
                 ['limit', BATCH_SIZE.toString()],
@@ -62,6 +62,12 @@ export async function GET() {
                 }
             });
             const richData = await resWithFields.json();
+
+            // Check for API Error
+            if (richData.error) {
+                console.error('ReliefWeb Loop Error:', JSON.stringify(richData, null, 2));
+                throw new Error(`ReliefWeb Loop Error: ${richData.error.message}`);
+            }
 
             if (!richData.data || richData.data.length === 0) {
                 console.log("No more data found, stopping.");
