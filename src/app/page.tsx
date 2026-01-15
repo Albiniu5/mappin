@@ -42,11 +42,20 @@ export default function Home() {
       // Calculate date range from data
       if (conflicts.length > 0) {
         const dates = conflicts.map(c => new Date(c.published_at))
+
+        // Normalize to midnight to ensure slider steps align correctly
         const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+        minDate.setHours(0, 0, 0, 0)
+
         const dataMaxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+        dataMaxDate.setHours(0, 0, 0, 0)
+
         const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
         const maxDate = dataMaxDate > today ? dataMaxDate : today
         setDateRange({ min: minDate, max: maxDate })
+
         // Only set current date on first load if null
         if (!currentDate) setCurrentDate(new Date())
       }
@@ -173,11 +182,20 @@ export default function Home() {
   // Ensure safe max date for timeline
   const timelineMaxDate = useMemo(() => {
     try {
-      if (!dateRange.max) return new Date();
       const now = new Date();
-      return dateRange.max > now ? dateRange.max : now;
+      now.setHours(0, 0, 0, 0); // Normalize to midnight
+
+      if (!dateRange.max) return now;
+
+      // Ensure dateRange.max is also normalized (it should be from state, but double check)
+      const max = new Date(dateRange.max);
+      max.setHours(0, 0, 0, 0);
+
+      return max > now ? max : now;
     } catch (e) {
-      return new Date();
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return now;
     }
   }, [dateRange.max]);
 

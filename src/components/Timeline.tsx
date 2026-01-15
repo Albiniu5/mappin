@@ -36,11 +36,20 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
     useEffect(() => {
         setMounted(true)
         const today = new Date()
-        const newEnd = maxDate && maxDate > today ? maxDate : today
-        console.log(`🎚️ Timeline Max Date prop: ${maxDate?.toISOString()}, calculated end: ${newEnd.toISOString()}`)
+        today.setHours(0, 0, 0, 0)
+
+        // Normalize props to be safe
+        const safeMax = maxDate ? new Date(maxDate) : today
+        safeMax.setHours(0, 0, 0, 0)
+
+        const newEnd = safeMax > today ? safeMax : today
+        console.log(`🎚️ Timeline Range (Normalized): MaxProp=${maxDate?.toLocaleDateString()}, CalculatedEnd=${newEnd.toLocaleDateString()}`)
+
+        const start = minDate ? new Date(minDate) : new Date(new Date().setDate(new Date().getDate() - 30))
+        start.setHours(0, 0, 0, 0)
 
         setRange({
-            start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
+            start: start,
             end: newEnd
         })
     }, [minDate, maxDate])
