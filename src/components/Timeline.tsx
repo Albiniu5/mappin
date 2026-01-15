@@ -27,7 +27,6 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         setMounted(true)
         const today = new Date()
         const newEnd = maxDate && maxDate > today ? maxDate : today
-        console.log(`🎚️ Timeline Range: Min=${minDate?.toLocaleDateString()}, Max=${maxDate?.toLocaleDateString()}, Today=${today.toLocaleDateString()}, Using=${newEnd.toLocaleDateString()}`)
         setRange({
             start: minDate || new Date(new Date().setDate(new Date().getDate() - 30)),
             end: newEnd
