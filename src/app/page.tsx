@@ -11,6 +11,8 @@ import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
 
+import NewsTicker from '@/components/NewsTicker'
+
 export default function Home() {
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [allConflicts, setAllConflicts] = useState<Conflict[]>([])
@@ -463,6 +465,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* News Ticker */}
+      <NewsTicker conflicts={filteredConflicts} />
 
       {/* Loading Indicator */}
       {loading && (
