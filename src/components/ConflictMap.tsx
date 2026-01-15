@@ -74,6 +74,9 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             );
         }).filter(Boolean) as Conflict[];
 
+        // Sort by date descending (newest first)
+        clusterConflicts.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+
         onClusterClick(clusterConflicts);
     };
 
