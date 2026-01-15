@@ -36,20 +36,28 @@ export default function ConflictMarker({ conflict }: ConflictMarkerProps) {
     const customIcon = new DivIcon({
         className: 'bg-transparent',
         html: `
-      <div class="relative group cursor-pointer">
-        <!-- Outer pulsing ring -->
-        <div class="absolute -inset-4 rounded-full ${colorClass} opacity-10 animate-ping" style="animation-duration: 2s;"></div>
-        <!-- Middle glow -->
-        <div class="absolute -inset-2 rounded-full ${colorClass} opacity-30 blur-sm"></div>
-        <!-- Inner marker -->
-        <div class="relative w-10 h-10 rounded-full ${colorClass} border-3 border-white shadow-2xl flex items-center justify-center text-base font-bold transform transition-all duration-300 group-hover:scale-125 group-hover:shadow-3xl">
-          ${iconChar}
+      <div class="relative group cursor-pointer flex items-center justify-center w-10 h-10">
+        <!-- Outer pulsing beacon (Radar Effect) -->
+        <div class="absolute w-3 h-3 rounded-full ${colorClass.replace('bg-', 'bg-').split(' ')[0]} animate-beacon opacity-75"></div>
+        
+        <!-- Inner glow -->
+        <div class="absolute w-3 h-3 rounded-full ${colorClass.replace('bg-', 'bg-').split(' ')[0]} blur-[2px] opacity-100"></div>
+
+        <!-- Core marker -->
+        <div class="relative z-10 w-3 h-3 rounded-full ${colorClass} border-2 border-white shadow-lg transition-transform duration-300 group-hover:scale-150"></div>
+        
+        <!-- Hover Label (Tooltip style) -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-20">
+            <div class="bg-slate-900/90 backdrop-blur text-white text-[10px] px-2 py-1 rounded shadow-xl border border-slate-700 flex items-center gap-1">
+                <span>${iconChar}</span>
+                <span class="font-bold">${conflict.category}</span>
+            </div>
         </div>
       </div>
     `,
         iconSize: [40, 40],
         iconAnchor: [20, 20],
-        popupAnchor: [0, -25]
+        popupAnchor: [0, -10]
     })
 
     return (
