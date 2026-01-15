@@ -139,6 +139,23 @@ export default function Home() {
     })
   }, [allConflicts, currentDate, searchTerm, selectedCategory])
 
+  // Stats calculation:
+  // - If Live (Today): Show only last 24h
+  // - If Timeline (Past): Show conflicts for that day (same as map)
+  const statsConflicts = useMemo(() => {
+    const isToday = currentDate
+      ? currentDate.toDateString() === new Date().toDateString()
+      : true;
+
+    if (isToday) {
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      return allConflicts.filter(c => new Date(c.published_at) > oneDayAgo);
+    }
+
+    return filteredConflicts;
+  }, [allConflicts, currentDate, filteredConflicts]);
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-slate-950">
 
@@ -154,16 +171,16 @@ export default function Home() {
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
               <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">Active Conflicts</div>
-              <div className="text-3xl font-bold text-blue-400">{filteredConflicts.length}</div>
+              <div className="text-3xl font-bold text-blue-400">{statsConflicts.length}</div>
               <div className="mt-2 flex gap-2 text-[10px]">
                 <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded">
-                  ⚔️ {filteredConflicts.filter(c => c.category === 'Armed Conflict').length}
+                  ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
                 </span>
                 <span className="bg-amber-600/20 text-amber-400 px-2 py-1 rounded">
-                  📣 {filteredConflicts.filter(c => c.category === 'Protest').length}
+                  📣 {statsConflicts.filter(c => c.category === 'Protest').length}
                 </span>
                 <span className="bg-orange-600/20 text-orange-400 px-2 py-1 rounded">
-                  ⚠️ {filteredConflicts.filter(c => c.category === 'Political Unrest').length}
+                  ⚠️ {statsConflicts.filter(c => c.category === 'Political Unrest').length}
                 </span>
               </div>
             </div>
