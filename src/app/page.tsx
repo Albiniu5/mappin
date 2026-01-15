@@ -212,11 +212,26 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Admin: Backfill Button */}
+          {/* Admin: Appname Input */}
+          <div className="w-full mt-2">
+            <input
+              type="text"
+              placeholder="ReliefWeb Appname (e.g. my-app-v1)"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 mb-1"
+              id="appname-input"
+            />
+            <p className="text-[9px] text-slate-500">
+              Required for backfill. <a href="https://apidoc.reliefweb.int/parameters#appname" target="_blank" className="underline hover:text-blue-400">Register here</a> if blocked.
+            </p>
+          </div>
+
           {/* Admin: Backfill Button */}
           <button
             onClick={async () => {
               const btn = document.getElementById('backfill-btn');
+              const input = document.getElementById('appname-input') as HTMLInputElement;
+              const customAppname = input?.value?.trim();
+
               if (btn) btn.innerHTML = '⏳ Initializing...';
 
               setLoading(true);
@@ -237,7 +252,8 @@ export default function Home() {
                   const offset = i * BATCH_SIZE;
                   if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
 
-                  const APPNAMES = ['rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'];
+                  // Priority: Custom Input -> Defaults
+                  const APPNAMES = [customAppname, 'rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'].filter(Boolean);
                   let data;
                   let usedAppname;
 
