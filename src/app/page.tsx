@@ -254,12 +254,18 @@ export default function Home() {
                   ]);
 
                   const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
+                  console.log(`Fetching: ${url}`);
 
-                  const res = await fetch(url);
+                  const res = await fetch(url, { mode: 'cors' });
                   const data = await res.json();
+                  console.log('ReliefWeb Batch Data:', data);
 
                   if (!data.data || data.data.length === 0) {
-                    console.log("No more data from ReliefWeb");
+                    console.warn("No more data from ReliefWeb (or empty response)", data);
+                    // Don't break immediately on first batch if it's empty, might be an issue.
+                    // But usually it means done.
+                    // Let's alert if total is 0.
+                    if (i === 0) alert(`Warning: First batch empty. URL: ${url}`);
                     break;
                   }
 
