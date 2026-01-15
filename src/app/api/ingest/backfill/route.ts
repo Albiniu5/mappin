@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/supabase';
-import { fallbackExtraction } from '../route';
+import { fallbackExtraction } from '@/lib/extraction';
 import { countries } from '@/lib/countries';
 
 // ReliefWeb API URL
