@@ -56,9 +56,22 @@ export function fallbackExtraction(title: string, description: string) {
         }
     }
 
+    // If no city, check countries
+    if (foundLoc.name === "Unknown") {
+        const { countries } = require('@/lib/countries');
+        for (const [key, val] of Object.entries(countries)) {
+            // @ts-ignore
+            if (text.includes(key)) {
+                // @ts-ignore
+                foundLoc = val;
+                break;
+            }
+        }
+    }
+
     // If no specific location found but text mentions general conflict keywords, mark as global event
     if (foundLoc.name === "Unknown") {
-        const hasConflictKeywords = /war|conflict|attack|strike|bomb|military|troops|casualties|violence|protest|riot|unrest/i.test(text);
+        const hasConflictKeywords = /war|conflict|attack|strike|bomb|military|troops|casualties|violence|protest|riot|unrest|sabotage|terrorism|security|defense|crisis|army|navy|air force|combat|fighting|shelling/i.test(text);
         if (hasConflictKeywords) {
             foundLoc = { lat: 20, lon: 0, name: "Global Event" };
         } else {
