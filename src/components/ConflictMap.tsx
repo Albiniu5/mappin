@@ -64,14 +64,24 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
         if (!onClusterClick) return;
 
         const markers = cluster.getAllChildMarkers();
+        const claimedIds = new Set<string>();
+
         const clusterConflicts = markers.map((marker: any) => {
             // Get marker position
             const markerPos = marker.getLatLng();
-            // Find matching conflict by coordinates
-            return conflicts.find(c =>
+
+            // Find matching conflict by coordinates THAT HAS NOT BEEN CLAIMED YET
+            const match = conflicts.find(c =>
+                !claimedIds.has(c.id) &&
                 Math.abs(c.latitude - markerPos.lat) < 0.0001 &&
                 Math.abs(c.longitude - markerPos.lng) < 0.0001
             );
+
+            if (match) {
+                claimedIds.add(match.id);
+                return match;
+            }
+            return null;
         }).filter(Boolean) as Conflict[];
 
         // Sort by date descending (newest first)
