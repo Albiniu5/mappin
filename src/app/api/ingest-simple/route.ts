@@ -25,10 +25,7 @@ export async function GET() {
 
         const { data, error } = await supabase
             .from('conflicts')
-            .upsert(records, {
-                onConflict: 'source_url',
-                ignoreDuplicates: false
-            });
+            .insert(records);
 
         if (error) throw error;
 
