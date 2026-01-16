@@ -3,7 +3,8 @@
 import { Database } from '@/types/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { format } from 'date-fns'
-import { motion, useAnimationFrame, useMotionValue } from 'framer-motion'
+import { motion, useAnimationFrame, useMotionValue, useMotionValueEvent } from 'framer-motion'
+
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
 
@@ -17,46 +18,61 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
     const [contentWidth, setContentWidth] = useState(0)
     const [isDragging, setIsDragging] = useState(false)
 
-    // Motion value for the x-offset
-    // We start at 0
+    // Start at 0, will be adjusted once we measure width
     const x = useMotionValue(0)
 
     useEffect(() => {
-        // Take latest 10 conflicts
+        // Take latest 10 conflicts, or more if needed to fill width? 
+        // 10 is usually enough for a long strip.
         if (conflicts.length > 0) {
-            setHeadlines(conflicts.slice(0, 10))
+            setHeadlines(conflicts.slice(0, 15)) // Increased to 15 to ensure density
         }
     }, [conflicts])
 
-    // Measure the width of the *single set* of items
+    // Measure the width of a *single set*
     useEffect(() => {
         if (containerRef.current) {
-            // The container has 2 sets. So singular width is half the scrollWidth.
-            // We verify this logic carefully.
+            // We have 3 sets in the container.
+            // scrollWidth is total width.
             const totalWidth = containerRef.current.scrollWidth
-            setContentWidth(totalWidth / 2)
+            const singleSetWidth = totalWidth / 3
+            setContentWidth(singleSetWidth)
+
+            // Set initial position to show the MIDDLE set (Set 2)
+            // This gives us buffer space on both left (Set 1) and right (Set 3)
+            x.set(-singleSetWidth)
         }
-    }, [headlines])
+    }, [headlines, x])
 
     const speed = 30 // pixels per second
 
+    // 1. Auto-scroll Logic
     useAnimationFrame((t, delta) => {
         if (isDragging || contentWidth === 0) return
 
         let moveBy = (speed * delta) / 1000
         let currentX = x.get()
+        x.set(currentX - moveBy)
+    })
 
-        // Move left
-        let nextX = currentX - moveBy
+    // 2. Infinite Loop / Wrap Logic (Works during Drag too!)
+    useMotionValueEvent(x, "change", (latest) => {
+        if (contentWidth === 0) return
 
-        // Seamless loop logic:
-        // If we have scrolled past the first set (-contentWidth), snap back to 0.
-        // It works because the 2nd set (at 0 position relative to viewport when snapped) is identical.
-        if (nextX <= -contentWidth) {
-            nextX = 0
+        // If we've scrolled past the 2nd set (viewing 3rd set), jump back to 1st set (visual equivalent of 2nd)
+        // Range: [0 ... -W ... -2W]
+        // Center (Set 2) starts at -W.
+
+        // If we drag RIGHT (positive) and reach 0 (Start of Set 1),
+        // we should jump to -W (Start of Set 2).
+        if (latest > 0) {
+            x.set(latest - contentWidth)
         }
-
-        x.set(nextX)
+        // If we drag/scroll LEFT (negative) and reach -2W (Start of Set 3),
+        // we should jump to -W (Start of Set 2).
+        else if (latest <= -2 * contentWidth) {
+            x.set(latest + contentWidth)
+        }
     })
 
     if (headlines.length === 0) return null
@@ -64,7 +80,7 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
     return (
         <div className="absolute bottom-0 left-0 w-full z-[1000] bg-slate-900/90 backdrop-blur-md border-t border-slate-700 h-10 flex items-center overflow-hidden">
             {/* Label */}
-            <div className="bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none">
+            <div className="bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none">
                 Breaking News
             </div>
 
@@ -73,31 +89,33 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
                 {/* Draggable Track */}
                 <motion.div
                     ref={containerRef}
-                    className="flex gap-12 items-center text-xs text-slate-300 absolute left-0"
+                    className="flex items-center absolute left-0 will-change-transform" // Remove gap here, put padding in items if needed to be precise
                     style={{ x }}
                     drag="x"
+                    dragConstraints={{ left: -Infinity, right: Infinity }} // Allow infinite drag, we handle wrapping manually
+                    dragElastic={0} // No rubber banding, strict path
+                    dragMomentum={false} // Instant stop on release (preference? User said "proceed like usual", maybe momentum=false is better to resume scroll immediately)
                     onDragStart={() => setIsDragging(true)}
                     onDragEnd={() => setIsDragging(false)}
-                // We don't apply hard constraints because infinite looping + physics is complex.
-                // Instead, we just let the user drag. The loop might jump if they drag too far, 
-                // but for small interactions it feels great.
                 >
-                    {/* First Set */}
-                    <div className="flex gap-12 items-center shrink-0">
+                    {/* 3 Identical Sets for Seamless Infinite Scroll + Drag */}
+
+                    {/* Set 1 (Left Buffer) */}
+                    <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
                             <NewsItem key={`set1-${item.id}`} item={item} />
                         ))}
                     </div>
 
-                    {/* Second Set (Duplicate for Loop) */}
-                    <div className="flex gap-12 items-center shrink-0">
+                    {/* Set 2 (Primary/Center) */}
+                    <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
                             <NewsItem key={`set2-${item.id}`} item={item} />
                         ))}
                     </div>
 
-                    {/* Third Set (Extra buffer for wide screens/dragging right) */}
-                    <div className="flex gap-12 items-center shrink-0">
+                    {/* Set 3 (Right Buffer) */}
+                    <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
                             <NewsItem key={`set3-${item.id}`} item={item} />
                         ))}
