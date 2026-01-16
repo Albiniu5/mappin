@@ -118,7 +118,7 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
     }
 
     return (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl z-[1000] flex items-center gap-4">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl z-[1000] flex items-center gap-4">
 
             {/* Controls Group */}
             <div className="flex items-center gap-2">
@@ -194,9 +194,13 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                             const now = new Date();
                             setInternalDate(now);
                             setDate(now);
+                            // Reset map view to global
+                            window.dispatchEvent(new CustomEvent('map-fly-to', {
+                                detail: { lat: 20, lng: 0, zoom: 2.5 }
+                            }));
                         }}
                         className="p-2 rounded-lg bg-slate-700 hover:bg-blue-600 transition-all duration-300 group"
-                        title="Jump to Today"
+                        title="Jump to Today & Reset View"
                     >
                         <RotateCcw className="w-5 h-5 text-blue-400 group-hover:text-white" />
                     </button>
