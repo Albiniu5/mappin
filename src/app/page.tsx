@@ -133,13 +133,9 @@ export default function Home() {
     const searchLower = searchTerm.toLowerCase();
 
     return allConflicts.filter(c => {
-      // If "Today" (Live Mode) is selected, show ALL history (clusters handle performance)
-      if (isToday) {
-        if (searchTerm === '' && selectedCategory === 'All') return true; // Fast path
-      }
-
-      // 1. Date Check
-      if (!isToday) {
+      // 1. Strict Date Check (Always apply, even for Today)
+      // This matches the timeline slider behavior: if you select a day, you only see that day's events.
+      if (targetDateStr) {
         const pubDate = new Date(c.published_at);
         if (pubDate.toDateString() !== targetDateStr) return false;
       }
