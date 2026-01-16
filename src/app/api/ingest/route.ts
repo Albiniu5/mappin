@@ -33,7 +33,7 @@ export async function GET() {
 
     let totalProcessed = 0;
     let totalErrors = 0;
-    const MAX_ITEMS_PER_FEED = 20; // Increased to capture more news (n8n deduplicates)
+    const MAX_ITEMS_PER_FEED = 5; // Conservative limit to avoid Gemini API rate limits
 
     try {
         console.log(`[Ingest] Starting RSS fetch cycle...`);
@@ -63,8 +63,8 @@ export async function GET() {
 
                     totalProcessed += reports.length;
 
-                    // Wait 2 seconds between feeds to prevent Gemini API rate limits in n8n
-                    await delay(2000);
+                    // Wait 5 seconds between feeds to prevent Gemini API rate limits in n8n
+                    await delay(5000);
                 }
 
             } catch (e: any) {
