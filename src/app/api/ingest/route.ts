@@ -37,7 +37,7 @@ export async function GET() {
 
     try {
         console.log(`[Ingest] Starting RSS fetch cycle...`);
-        const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest-ai';
+        const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest';
 
         for (const url of RSS_URLS) {
             try {
