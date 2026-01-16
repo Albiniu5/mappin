@@ -140,21 +140,46 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                 }}
                 iconCreateFunction={(cluster: any) => {
                     const count = cluster.getChildCount();
-                    let sizeClass = 'w-14 h-14 text-base';
-                    if (count > 50) sizeClass = 'w-20 h-20 text-xl';
-                    else if (count > 20) sizeClass = 'w-16 h-16 text-lg';
+
+                    // Dynamic scaling: simpler, continuous scale
+                    // Base 40px, add 5px for every power of 10 or similar
+                    // Let's use a log scale to prevent massive blobs
+                    const baseSize = 40;
+                    const bonus = Math.min(Math.log10(count) * 20, 60); // Cap size
+                    const size = baseSize + bonus;
+                    const fontSize = Math.max(12, size / 3);
+
+                    // Intensity based on count (make it "hotter" as it grows)
+                    let colorClass = 'from-orange-500 to-red-600';
+                    let glowColor = 'rgba(255, 69, 0, 0.6)'; // Red-Orange
+
+                    if (count > 100) {
+                        colorClass = 'from-red-500 to-red-900';
+                        glowColor = 'rgba(220, 20, 60, 0.8)';
+                    } else if (count > 20) {
+                        colorClass = 'from-orange-400 to-red-600';
+                    }
 
                     return new DivIcon({
                         html: `
-                            <div class="relative group cursor-pointer">
-                                <div class="absolute -inset-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded-full blur opacity-75 animate-pulse"></div>
-                                <div class="relative ${sizeClass} rounded-full bg-gradient-to-br from-orange-600 to-orange-800 border-3 border-white shadow-2xl flex items-center justify-center font-bold text-white transition-transform hover:scale-110">
+                            <div class="relative flex items-center justify-center w-full h-full">
+                                <!-- Outer Glow (Pulse) -->
+                                <div class="absolute inset-0 rounded-full animate-pulse" 
+                                     style="background: ${glowColor}; filter: blur(8px);"></div>
+                                
+                                <!-- Core Glow (Static Halo) -->
+                                <div class="absolute inset-0 rounded-full" 
+                                     style="background: ${glowColor}; filter: blur(4px); transform: scale(1.2);"></div>
+
+                                <!-- Solid Core -->
+                                <div class="relative rounded-full bg-gradient-to-br ${colorClass} shadow-inner flex items-center justify-center text-white font-bold border border-white/20"
+                                     style="width: ${size}px; height: ${size}px; font-size: ${fontSize}px; box-shadow: 0 0 15px 2px ${glowColor};">
                                     ${count}
                                 </div>
                             </div>
                         `,
                         className: 'bg-transparent',
-                        iconSize: count > 50 ? [80, 80] : count > 20 ? [64, 64] : [56, 56],
+                        iconSize: [size + 20, size + 20], // Add padding for glow
                     });
                 }}
             >
