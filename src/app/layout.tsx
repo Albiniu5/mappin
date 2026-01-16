@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   description: "Visualizing global conflicts in real-time.",
 };
 
+import { Toaster } from "sonner";
+import Sentinel from "@/components/Sentinel";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -19,6 +22,8 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-slate-950 text-slate-100 overflow-hidden`} suppressHydrationWarning>
         {children}
+        <Sentinel />
+        <Toaster richColors theme="dark" />
       </body>
     </html>
   );

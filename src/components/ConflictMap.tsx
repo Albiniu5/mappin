@@ -35,6 +35,23 @@ const FixLeafletIcon = () => {
     return null
 }
 
+const MapController = () => {
+    const map = useMap()
+    useEffect(() => {
+        const handleFlyTo = (e: any) => {
+            const { lat, lng, zoom } = e.detail;
+            if (lat && lng) {
+                map.flyTo([lat, lng], zoom || 8, { duration: 2 });
+            }
+        };
+
+        window.addEventListener('map-fly-to', handleFlyTo);
+        return () => window.removeEventListener('map-fly-to', handleFlyTo);
+    }, [map])
+
+    return null;
+}
+
 const ZoomOutButton = () => {
     const map = useMap()
 
@@ -100,6 +117,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             maxBounds={[[-90, -180], [90, 180]]}
         >
             <FixLeafletIcon />
+            <MapController />
             <ZoomOutButton />
             {/* Dark themed tiles */}
             <TileLayer

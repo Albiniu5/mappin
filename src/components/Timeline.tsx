@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, FastForward, Calendar, RotateCcw } from 'lucide-react'
+import { Play, Pause, FastForward, Calendar, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface TimelineProps {
     date: Date
@@ -76,6 +76,38 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         setPlaybackSpeed(nextSpeed);
     }
 
+    const handlePrevDay = () => {
+        const newDate = new Date(internalDate);
+        newDate.setDate(newDate.getDate() - 1);
+
+        // Normalize for comparison
+        const compareDate = new Date(newDate);
+        compareDate.setHours(0, 0, 0, 0);
+        const startCompare = new Date(range.start);
+        startCompare.setHours(0, 0, 0, 0);
+
+        if (compareDate >= startCompare) {
+            setInternalDate(newDate);
+            setDate(newDate);
+        }
+    };
+
+    const handleNextDay = () => {
+        const newDate = new Date(internalDate);
+        newDate.setDate(newDate.getDate() + 1);
+
+        // Normalize for comparison
+        const compareDate = new Date(newDate);
+        compareDate.setHours(0, 0, 0, 0);
+        const endCompare = new Date(range.end);
+        endCompare.setHours(0, 0, 0, 0);
+
+        if (compareDate <= endCompare) {
+            setInternalDate(newDate);
+            setDate(newDate);
+        }
+    };
+
     // Calculate progress percentage using internal date for smoothness
     const progress = range.start && range.end
         ? ((internalDate.getTime() - range.start.getTime()) / (range.end.getTime() - range.start.getTime())) * 100
@@ -87,19 +119,39 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
     return (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl z-[1000] flex items-center gap-4">
-            <button
-                onClick={onPlayToggle}
-                className={`p-3 rounded-full ${isPlaying ? 'bg-orange-600 hover:bg-orange-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'} text-white transition-all shadow-lg`}
-                title={isPlaying ? 'Pause' : 'Play'}
-            >
-                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-            </button>
+
+            {/* Controls Group */}
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={handlePrevDay}
+                    className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-600"
+                    title="Previous Day"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+
+                <button
+                    onClick={onPlayToggle}
+                    className={`p-3 rounded-full ${isPlaying ? 'bg-orange-600 hover:bg-orange-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'} text-white transition-all shadow-lg`}
+                    title={isPlaying ? 'Pause' : 'Play'}
+                >
+                    {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                </button>
+
+                <button
+                    onClick={handleNextDay}
+                    className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-600"
+                    title="Next Day"
+                >
+                    <ChevronRight size={16} />
+                </button>
+            </div>
 
             {/* Playback speed control */}
             {setPlaybackSpeed && (
                 <button
                     onClick={handleSpeedChange}
-                    className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors border border-slate-600"
+                    className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold transition-colors border border-slate-600 min-w-[50px]"
                     title="Change playback speed"
                 >
                     <FastForward size={14} className="inline mr-1" />

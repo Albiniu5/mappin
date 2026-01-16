@@ -1,7 +1,8 @@
 import { countries } from '@/lib/countries';
+import { ExtractedData } from '@/lib/ai';
 
 // Comprehensive fallback extraction when AI fails
-export function fallbackExtraction(title: string, description: string) {
+export function fallbackExtraction(title: string, description: string, countryHint?: string): ExtractedData | null {
     console.log("Ingest Filter v2.1 (Sabotage Fix) checking: " + title.substring(0, 20));
     const text = (title + " " + description).toLowerCase();
 
@@ -41,10 +42,24 @@ export function fallbackExtraction(title: string, description: string) {
     };
 
     let foundLoc = { lat: 0, lon: 0, name: "Unknown" };
-    for (const [key, val] of Object.entries(cityLocations)) {
-        if (text.includes(key)) {
-            foundLoc = val;
-            break;
+
+
+    // 0. Priority: Explicit Country Hint
+    if (countryHint) {
+        const hintLower = countryHint.toLowerCase();
+        // @ts-ignore
+        if (countries[hintLower]) {
+            // @ts-ignore
+            foundLoc = countries[hintLower];
+        }
+    }
+
+    if (foundLoc.name === "Unknown") {
+        for (const [key, val] of Object.entries(cityLocations)) {
+            if (text.includes(key)) {
+                foundLoc = val;
+                break;
+            }
         }
     }
 
@@ -72,7 +87,7 @@ export function fallbackExtraction(title: string, description: string) {
     }
 
     // Categorize based on keywords
-    let category = "Other";
+    let category: ExtractedData['category'] = "Other";
     if (/kill|dead|death|attack|missile|bomb|strike|airstrike|war|troops|military|armed|shoot|explosion/i.test(text)) {
         category = "Armed Conflict";
     } else if (/protest|demonstrat|march|rally|riot|unrest|uprising/i.test(text)) {
