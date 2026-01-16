@@ -48,7 +48,7 @@ export async function GET() {
                 // Format for n8n
                 const reports = items.slice(0, MAX_ITEMS_PER_FEED).map(item => ({
                     title: item.title,
-                    body: item.description,
+                    description: item.description,
                     url: item.link,
                     date: new Date(item.pubDate).toISOString(),
                     // Optional: Hint primary country if available in title?
