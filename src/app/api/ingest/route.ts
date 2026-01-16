@@ -68,7 +68,7 @@ export async function GET() {
 
         if (allReports.length > 0) {
             // Forward to n8n Webhook
-            const n8nWebhookUrl = 'http://localhost:5678/webhook/ingest-ai';
+            const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest-ai';
 
             const response = await fetch(n8nWebhookUrl, {
                 method: 'POST',
