@@ -132,25 +132,28 @@ export default function Home() {
     const targetDateStr = currentDate ? currentDate.toDateString() : "";
     const isTargetToday = currentDate && currentDate.toDateString() === now.toDateString();
 
-    // Calculate "Yesterday" string for the smart filter
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
+    // Calculate 24h threshold for "Ingested Recently" logic
+    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
     const searchLower = searchTerm.toLowerCase();
 
     return allConflicts.filter(c => {
-      // 1. Date Check with "Smart Today" Logic
+      // 1. Hybrid Date Filter (The "Freshness" Logic)
       if (targetDateStr) {
         const pubDate = new Date(c.published_at);
-        const pubDateStr = pubDate.toDateString();
 
-        // If user selected TODAY, show Today + Yesterday (capture recent news cycles)
+        // If user selected TODAY: Show items published today OR ingested in last 24h
         if (isTargetToday) {
-          if (pubDateStr !== targetDateStr && pubDateStr !== yesterdayStr) return false;
+          const isPublishedToday = pubDate.toDateString() === targetDateStr;
+          const ingestDate = new Date(c.created_at); // When we fetched it
+          const isIngestedRecently = ingestDate > twentyFourHoursAgo;
+
+          if (!isPublishedToday && !isIngestedRecently) {
+            return false;
+          }
         }
-        // Otherwise, strict daily matching
-        else if (pubDateStr !== targetDateStr) {
+        // For past dates: Strict publication date match
+        else if (pubDate.toDateString() !== targetDateStr) {
           return false;
         }
       }
