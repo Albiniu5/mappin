@@ -11,7 +11,8 @@ import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
 
-import NewsTicker from '@/components/NewsTicker'
+import { toast } from 'sonner'
+import { useRef } from 'react'
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
@@ -24,6 +25,12 @@ export default function Home() {
   const [clusterConflicts, setClusterConflicts] = useState<Conflict[]>([])
   const [showClusterSidebar, setShowClusterSidebar] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
+
+  // Track seen IDs to detect new items for notifications
+  const seenIdsRef = useRef<Set<number>>(new Set())
+  // Use a strictly local ref to avoid re-triggering effects, 
+  // but wait... invalidating strict mode might double toast. 
+  // We'll trust the Set to deduplicate.
 
   const categories = ['All', 'Armed Conflict', 'Protest', 'Political Unrest', 'Other']
 
@@ -38,6 +45,36 @@ export default function Home() {
       console.log("Supabase Data:", data);
       // Filter out test alerts
       const conflicts = (data as Conflict[]).filter(c => !c.title.startsWith("TEST ALERT"));
+
+      // NOTIFICATION LOGIC
+      // 1. Identify which IDs are new
+      const newItems = conflicts.filter(c => !seenIdsRef.current.has(c.id));
+
+      // 2. If this is NOT the first load (we have seen things before), notify
+      if (seenIdsRef.current.size > 0 && newItems.length > 0) {
+        // Take only the latest 5 to avoid spam if a huge batch comes in
+        const latestNewItems = newItems.slice(0, 5);
+
+        latestNewItems.forEach(item => {
+          toast.info(item.title, {
+            description: `${item.location_name || 'Unknown Location'} • ${format(new Date(item.published_at), 'HH:mm')}`,
+            duration: Infinity, // Persistent until clicked
+            dismissible: true,
+            action: {
+              label: 'Locate',
+              onClick: () => {
+                // Simple locate logic: set date and maybe searchTerm? 
+                // For now just setting date ensures it's visible if filtered
+                setCurrentDate(new Date(item.published_at))
+              }
+            }
+          })
+        })
+      }
+
+      // 3. Update seen IDs
+      conflicts.forEach(c => seenIdsRef.current.add(c.id));
+
       setAllConflicts(conflicts)
 
       // Calculate date range from data
@@ -223,7 +260,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.14</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.15</span></p>
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">

@@ -23,7 +23,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-950 text-slate-100 overflow-hidden`} suppressHydrationWarning>
         {children}
         <Sentinel />
-        <Toaster richColors theme="dark" />
+        <Toaster richColors theme="dark" visibleToasts={5} />
       </body>
     </html>
   );
