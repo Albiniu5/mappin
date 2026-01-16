@@ -143,21 +143,23 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
 
         return new DivIcon({
             html: `
-                <div style="width: ${size}px; height: ${size}px;" class="relative flex items-center justify-center group hover:scale-110 transition-transform duration-300">
+                <div style="position: relative; width: ${size}px; height: ${size}px;" class="group hover:scale-110 transition-transform duration-300">
                     <!-- Glow -->
-                    <div class="absolute inset-0 rounded-full blur-md transition-all duration-500 group-hover:blur-lg" style="background: ${glowColor}; opacity: 0.6; transform: scale(1.1);"></div>
+                    <div style="position: absolute; inset: 0; border-radius: 9999px; filter: blur(8px); background: ${glowColor}; opacity: 0.6; transform: scale(1.1);" class="transition-all duration-500 group-hover:blur-lg"></div>
                     
-                    <!-- SVG Chart (Absolute Background) -->
-                    <svg width="${size}" height="${size}" viewBox="0 0 40 40" class="absolute inset-0 transform -rotate-90 drop-shadow-2xl z-10 pointer-events-none">
+                    <!-- SVG Chart -->
+                    <svg width="${size}" height="${size}" viewBox="0 0 40 40" style="position: absolute; top: 0; left: 0; transform: rotate(-90deg); z-index: 1;" class="drop-shadow-2xl pointer-events-none">
                         <circle r="${radius}" cx="20" cy="20" fill="#0f172a" stroke="#0f172a" stroke-width="6" />
                         ${svgSegments}
                         <circle r="${radius - 3.5}" cx="20" cy="20" fill="#0f172a" />
                     </svg>
 
-                    <!-- Count Label (Relative Foreground) -->
-                    <span style="font-size: ${fontSize}px; color: white !important; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.9);" class="relative z-50 font-sans select-none pointer-events-none">
-                        ${count}
-                    </span>
+                    <!-- Count Label - MUST BE ON TOP -->
+                    <div style="position: absolute; top: 0; left: 0; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; z-index: 9999; pointer-events: none;">
+                        <span style="font-size: ${fontSize}px; color: #ffffff; font-weight: 900; line-height: 1; text-shadow: 0 2px 6px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.9); font-family: system-ui, -apple-system, sans-serif; user-select: none;">
+                            ${count}
+                        </span>
+                    </div>
                 </div>
             `,
             className: 'bg-transparent',

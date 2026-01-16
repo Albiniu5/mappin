@@ -411,7 +411,7 @@ export default function Home() {
                   </h4>
 
                   <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                    {conflict.description}
+                    {conflict.description?.replace(/<[^>]*>/g, '') || 'No description available'}
                   </p>
                 </div>
               </a>
