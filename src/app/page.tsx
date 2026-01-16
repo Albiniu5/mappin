@@ -270,19 +270,22 @@ export default function Home() {
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 w-full p-6 z-[1000] pointer-events-none">
         <div className="flex justify-between items-start pointer-events-auto">
-          <div>
+          <div className="relative">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.22</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v0.1.1</span></p>
             {/* DEBUG BUTTON: Click version number to force a fake notification */}
             <button
-              className="absolute top-0 right-0 w-8 h-8 opacity-0 cursor-default"
+              className="absolute top-0 right-0 w-8 h-8 opacity-10 bg-red-500 z-50 cursor-pointer hover:opacity-30"
+              title="Force Debug Notification"
               onClick={() => {
-                console.log("Forcing debug notification");
+                console.log("Forcing debug notification...");
+                const fakeId = Math.floor(Math.random() * 1000000).toString();
+
                 setNotifications(prev => [
                   {
-                    id: Math.random(),
+                    id: fakeId,
                     title: "🔔 FORCE DEBUG NOTIFICATION",
                     summary: "If you see this, the UI is working.",
                     published_at: new Date().toISOString(),
@@ -293,8 +296,14 @@ export default function Home() {
                     source: "System",
                     latitude: 0,
                     longitude: 0,
-                    source_url: "#"
-                  } as Conflict,
+                    source_url: "#",
+                    // Required properties to satisfy Conflict type
+                    description: "Debug notification description",
+                    vector: null,
+                    country: null,
+                    image_url: null,
+                    original_id: null
+                  } as unknown as Conflict,
                   ...prev
                 ])
               }}

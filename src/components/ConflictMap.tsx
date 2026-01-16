@@ -182,6 +182,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             center={[20, 0]}
             zoom={2.5}
             scrollWheelZoom={true}
+            zoomControl={false}
             className="h-full w-full z-0 bg-slate-900"
             minZoom={2}
             maxBounds={[[-90, -180], [90, 180]]}
