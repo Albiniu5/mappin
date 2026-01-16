@@ -202,7 +202,9 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             />
 
             {/* Single Cluster Group with Donut Chart Visualization */}
+            {/* key={conflicts.length} is CRITICAL: Forces re-mount when data loads, ensuring createClusterIcon has fresh data */}
             <MarkerClusterGroup
+                key={conflicts.length}
                 chunkedLoading
                 showCoverageOnHover={false}
                 spiderfyOnMaxZoom={true}
