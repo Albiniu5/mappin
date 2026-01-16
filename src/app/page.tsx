@@ -57,8 +57,8 @@ export default function Home() {
         const maxDate = dataMaxDate > today ? dataMaxDate : today
         setDateRange({ min: minDate, max: maxDate })
 
-        // Default to showing ALL data, not just today
-        // if (!currentDate) setCurrentDate(new Date())
+        // Only set current date on first load if null
+        if (!currentDate) setCurrentDate(new Date())
       }
     }
     if (error) console.error('Error fetching conflicts:', error)
@@ -129,16 +129,30 @@ export default function Home() {
   const filteredConflicts = useMemo(() => {
     // Pre-calculate filter values to avoid re-calculating inside the loop
     const now = new Date();
-    const isToday = currentDate ? currentDate.toDateString() === now.toDateString() : true;
     const targetDateStr = currentDate ? currentDate.toDateString() : "";
+    const isTargetToday = currentDate && currentDate.toDateString() === now.toDateString();
+
+    // Calculate "Yesterday" string for the smart filter
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+
     const searchLower = searchTerm.toLowerCase();
 
     return allConflicts.filter(c => {
-      // 1. Strict Date Check (Always apply, even for Today)
-      // This matches the timeline slider behavior: if you select a day, you only see that day's events.
+      // 1. Date Check with "Smart Today" Logic
       if (targetDateStr) {
         const pubDate = new Date(c.published_at);
-        if (pubDate.toDateString() !== targetDateStr) return false;
+        const pubDateStr = pubDate.toDateString();
+
+        // If user selected TODAY, show Today + Yesterday (capture recent news cycles)
+        if (isTargetToday) {
+          if (pubDateStr !== targetDateStr && pubDateStr !== yesterdayStr) return false;
+        }
+        // Otherwise, strict daily matching
+        else if (pubDateStr !== targetDateStr) {
+          return false;
+        }
       }
 
       // 2. Category Check (Fastest first)
@@ -206,7 +220,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.10</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.11</span></p>
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
