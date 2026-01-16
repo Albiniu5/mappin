@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import 'leaflet/dist/leaflet.css'
 import { Icon, DivIcon } from 'leaflet'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Database } from '@/types/supabase'
 import ConflictMarker from './ConflictMarker'
 import { Globe } from 'lucide-react'
@@ -108,14 +108,21 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
         map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
     };
 
+    // Use ref to access latest conflicts inside createClusterIcon (which might be stale if closed over)
+    const conflictsRef = useRef(conflicts);
+    useEffect(() => {
+        conflictsRef.current = conflicts;
+    }, [conflicts]);
+
     const createClusterIcon = (cluster: any) => {
         const markers = cluster.getAllChildMarkers();
         const count = cluster.getChildCount();
         const stats: Record<string, number> = { 'Armed Conflict': 0, 'Protest': 0, 'Political Unrest': 0, 'Other': 0 };
+        const currentConflicts = conflictsRef.current;
 
         markers.forEach((marker: any) => {
             const id = marker.options.title;
-            const match = conflicts.find(c => c.id === id);
+            const match = currentConflicts.find(c => c.id === id);
             if (match) {
                 const cat = ['Armed Conflict', 'Protest', 'Political Unrest'].includes(match.category) ? match.category : 'Other';
                 stats[cat] = (stats[cat] || 0) + 1;
