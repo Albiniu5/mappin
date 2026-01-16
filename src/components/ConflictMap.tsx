@@ -125,68 +125,74 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
 
-            {/* Cluster markers */}
-            <MarkerClusterGroup
-                chunkedLoading
-                showCoverageOnHover={false}
-                spiderfyOnMaxZoom={false}
-                zoomToBoundsOnClick={false} // Disable jarring zoom
-                onClick={(e: any) => {
-                    const cluster = e.layer;
-                    handleClusterClick(cluster);
-                    // Gentle Zoom: Just go 2 levels deeper, don't max out
-                    const map = cluster._map;
-                    map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
-                }}
-                iconCreateFunction={(cluster: any) => {
-                    const count = cluster.getChildCount();
+            {/* Separate Cluster Groups per Category to achieve "Split by Subject" */}
+            {[
+                { name: 'Armed Conflict', color: 'from-red-600 to-red-800', glow: 'rgba(220, 20, 60, 0.4)', borderColor: 'border-red-500/30' },
+                { name: 'Protest', color: 'from-amber-500 to-orange-700', glow: 'rgba(255, 140, 0, 0.4)', borderColor: 'border-amber-500/30' },
+                { name: 'Political Unrest', color: 'from-orange-500 to-orange-800', glow: 'rgba(255, 69, 0, 0.4)', borderColor: 'border-orange-500/30' },
+                { name: 'Other', color: 'from-blue-500 to-indigo-700', glow: 'rgba(30, 144, 255, 0.4)', borderColor: 'border-blue-500/30' }
+            ].map((cat) => {
+                const catConflicts = conflicts.filter(c =>
+                    cat.name === 'Other'
+                        ? !['Armed Conflict', 'Protest', 'Political Unrest'].includes(c.category)
+                        : c.category === cat.name
+                );
 
-                    // Dynamic scaling: simpler, continuous scale
-                    // Base 40px, add 5px for every power of 10 or similar
-                    // Let's use a log scale to prevent massive blobs
-                    const baseSize = 40;
-                    const bonus = Math.min(Math.log10(count) * 20, 60); // Cap size
-                    const size = baseSize + bonus;
-                    const fontSize = Math.max(12, size / 3);
+                if (catConflicts.length === 0) return null;
 
-                    // Intensity based on count (make it "hotter" as it grows)
-                    let colorClass = 'from-orange-500 to-red-600';
-                    let glowColor = 'rgba(255, 69, 0, 0.6)'; // Red-Orange
+                return (
+                    <MarkerClusterGroup
+                        key={cat.name}
+                        chunkedLoading
+                        showCoverageOnHover={false}
+                        spiderfyOnMaxZoom={true}
+                        maxClusterRadius={40}
+                        zoomToBoundsOnClick={false}
+                        onClick={(e: any) => {
+                            const cluster = e.layer;
+                            handleClusterClick(cluster);
+                            const map = cluster._map;
+                            map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
+                        }}
+                        iconCreateFunction={(cluster: any) => {
+                            const count = cluster.getChildCount();
 
-                    if (count > 100) {
-                        colorClass = 'from-red-500 to-red-900';
-                        glowColor = 'rgba(220, 20, 60, 0.8)';
-                    } else if (count > 20) {
-                        colorClass = 'from-orange-400 to-red-600';
-                    }
+                            // Toned down size scaling
+                            // Base 36px, variable based on log count, capped at 60px
+                            const baseSize = 36;
+                            const bonus = Math.min(Math.log10(count) * 12, 24);
+                            const size = baseSize + bonus;
+                            const fontSize = Math.max(11, size / 2.8);
 
-                    return new DivIcon({
-                        html: `
-                            <div class="relative flex items-center justify-center w-full h-full">
-                                <!-- Outer Glow (Pulse) -->
-                                <div class="absolute inset-0 rounded-full animate-pulse" 
-                                     style="background: ${glowColor}; filter: blur(8px);"></div>
-                                
-                                <!-- Core Glow (Static Halo) -->
-                                <div class="absolute inset-0 rounded-full" 
-                                     style="background: ${glowColor}; filter: blur(4px); transform: scale(1.2);"></div>
+                            return new DivIcon({
+                                html: `
+                                    <div class="relative flex items-center justify-center w-full h-full group">
+                                        <!-- Subtle Outer Glow (Only on hover or very large) -->
+                                        <div class="absolute inset-0 rounded-full transition-opacity duration-500 opacity-50 group-hover:opacity-100" 
+                                             style="background: ${cat.glow}; filter: blur(12px);"></div>
+                                        
+                                        <!-- Core Ring (Analog feel) -->
+                                        <div class="absolute inset-0 rounded-full border-1 ${cat.borderColor}" 
+                                             style="transform: scale(1.15);"></div>
 
-                                <!-- Solid Core -->
-                                <div class="relative rounded-full bg-gradient-to-br ${colorClass} shadow-inner flex items-center justify-center text-white font-bold border border-white/20"
-                                     style="width: ${size}px; height: ${size}px; font-size: ${fontSize}px; box-shadow: 0 0 15px 2px ${glowColor};">
-                                    ${count}
-                                </div>
-                            </div>
-                        `,
-                        className: 'bg-transparent',
-                        iconSize: [size + 20, size + 20], // Add padding for glow
-                    });
-                }}
-            >
-                {conflicts.map(conflict => (
-                    <ConflictMarker key={conflict.id} conflict={conflict} />
-                ))}
-            </MarkerClusterGroup>
+                                        <!-- Solid Core -->
+                                        <div class="relative rounded-full bg-gradient-to-br ${cat.color} shadow-lg flex items-center justify-center text-white font-bold border border-white/20 z-10"
+                                             style="width: ${size}px; height: ${size}px; font-size: ${fontSize}px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+                                            ${count}
+                                        </div>
+                                    </div>
+                                `,
+                                className: 'bg-transparent',
+                                iconSize: [size + 24, size + 24],
+                            });
+                        }}
+                    >
+                        {catConflicts.map(conflict => (
+                            <ConflictMarker key={conflict.id} conflict={conflict} />
+                        ))}
+                    </MarkerClusterGroup>
+                );
+            })}
         </MapContainer>
     )
 }
