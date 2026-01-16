@@ -125,74 +125,125 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             />
 
-            {/* Separate Cluster Groups per Category to achieve "Split by Subject" */}
-            {[
-                { name: 'Armed Conflict', color: 'from-red-600 to-red-800', glow: 'rgba(220, 20, 60, 0.4)', borderColor: 'border-red-500/30' },
-                { name: 'Protest', color: 'from-amber-500 to-orange-700', glow: 'rgba(255, 140, 0, 0.4)', borderColor: 'border-amber-500/30' },
-                { name: 'Political Unrest', color: 'from-orange-500 to-orange-800', glow: 'rgba(255, 69, 0, 0.4)', borderColor: 'border-orange-500/30' },
-                { name: 'Other', color: 'from-blue-500 to-indigo-700', glow: 'rgba(30, 144, 255, 0.4)', borderColor: 'border-blue-500/30' }
-            ].map((cat) => {
-                const catConflicts = conflicts.filter(c =>
-                    cat.name === 'Other'
-                        ? !['Armed Conflict', 'Protest', 'Political Unrest'].includes(c.category)
-                        : c.category === cat.name
-                );
+            {/* Single Cluster Group with Donut Chart Visualization */}
+            <MarkerClusterGroup
+                chunkedLoading
+                showCoverageOnHover={false}
+                spiderfyOnMaxZoom={true} // Allow spiderfy to see individual pins at max zoom
+                maxClusterRadius={50} // Slightly larger radius to gather more points
+                zoomToBoundsOnClick={false}
+                onClick={(e: any) => {
+                    const cluster = e.layer;
+                    handleClusterClick(cluster);
+                    const map = cluster._map;
+                    map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
+                }}
+                iconCreateFunction={(cluster: any) => {
+                    const markers = cluster.getAllChildMarkers();
+                    const count = cluster.getChildCount();
 
-                if (catConflicts.length === 0) return null;
+                    // 1. Tally Categories (Approximation via LatLng lookup)
+                    // We assume 'conflicts' prop is available in scope.
+                    const stats: Record<string, number> = {
+                        'Armed Conflict': 0, 'Protest': 0, 'Political Unrest': 0, 'Other': 0
+                    };
 
-                return (
-                    <MarkerClusterGroup
-                        key={cat.name}
-                        chunkedLoading
-                        showCoverageOnHover={false}
-                        spiderfyOnMaxZoom={true}
-                        maxClusterRadius={40}
-                        zoomToBoundsOnClick={false}
-                        onClick={(e: any) => {
-                            const cluster = e.layer;
-                            handleClusterClick(cluster);
-                            const map = cluster._map;
-                            map.flyTo(cluster.getLatLng(), map.getZoom() + 2, { duration: 1 });
-                        }}
-                        iconCreateFunction={(cluster: any) => {
-                            const count = cluster.getChildCount();
+                    markers.forEach((marker: any) => {
+                        const pos = marker.getLatLng();
+                        // Find match (simple strict equality usually works for unchanged data)
+                        // Use a small epsilon for float precision safety
+                        const match = conflicts.find(c =>
+                            Math.abs(c.latitude - pos.lat) < 0.00001 &&
+                            Math.abs(c.longitude - pos.lng) < 0.00001
+                        );
+                        if (match) {
+                            const cat = ['Armed Conflict', 'Protest', 'Political Unrest'].includes(match.category)
+                                ? match.category
+                                : 'Other';
+                            stats[cat] = (stats[cat] || 0) + 1;
+                        } else {
+                            stats['Other'] = (stats['Other'] || 0) + 1;
+                        }
+                    });
 
-                            // Toned down size scaling
-                            // Base 36px, variable based on log count, capped at 60px
-                            const baseSize = 36;
-                            const bonus = Math.min(Math.log10(count) * 12, 24);
-                            const size = baseSize + bonus;
-                            const fontSize = Math.max(11, size / 2.8);
+                    // 2. Calculate SVG Segments
+                    // Colors: Red (Armed), Amber (Protest), Orange (Unrest), Blue (Other)
+                    const colors: Record<string, string> = {
+                        'Armed Conflict': '#dc2626', // Red-600
+                        'Protest': '#f59e0b', // Amber-500
+                        'Political Unrest': '#ea580c', // Orange-600
+                        'Other': '#3b82f6' // Blue-500
+                    };
 
-                            return new DivIcon({
-                                html: `
-                                    <div class="relative flex items-center justify-center w-full h-full group">
-                                        <!-- Subtle Outer Glow (Only on hover or very large) -->
-                                        <div class="absolute inset-0 rounded-full transition-opacity duration-500 opacity-50 group-hover:opacity-100" 
-                                             style="background: ${cat.glow}; filter: blur(12px);"></div>
-                                        
-                                        <!-- Core Ring (Analog feel) -->
-                                        <div class="absolute inset-0 rounded-full border-1 ${cat.borderColor}" 
-                                             style="transform: scale(1.15);"></div>
+                    let svgSegments = '';
+                    let accumulatedPercent = 0;
+                    const radius = 16;
+                    const circumference = 2 * Math.PI * radius; // ~100.53
 
-                                        <!-- Solid Core -->
-                                        <div class="relative rounded-full bg-gradient-to-br ${cat.color} shadow-lg flex items-center justify-center text-white font-bold border border-white/20 z-10"
-                                             style="width: ${size}px; height: ${size}px; font-size: ${fontSize}px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
-                                            ${count}
-                                        </div>
-                                    </div>
-                                `,
-                                className: 'bg-transparent',
-                                iconSize: [size + 24, size + 24],
-                            });
-                        }}
-                    >
-                        {catConflicts.map(conflict => (
-                            <ConflictMarker key={conflict.id} conflict={conflict} />
-                        ))}
-                    </MarkerClusterGroup>
-                );
-            })}
+                    Object.entries(stats).forEach(([cat, catCount]) => {
+                        if (catCount === 0) return;
+                        const percent = catCount / count;
+                        const dashArray = `${percent * circumference} ${circumference}`;
+                        const dashOffset = -1 * accumulatedPercent * circumference;
+
+                        // Note: dashoffset must be negative for clockwise rotation
+                        svgSegments += `
+                            <circle r="${radius}" cx="20" cy="20" fill="transparent" 
+                                    stroke="${colors[cat]}" stroke-width="6" 
+                                    stroke-dasharray="${dashArray}" 
+                                    stroke-dashoffset="${dashOffset}"
+                                    class="transition-all duration-300" />
+                        `;
+                        accumulatedPercent += percent;
+                    });
+
+                    // 3. Determine Dominant Color for Glow
+                    const dominantCat = Object.keys(stats).reduce((a, b) => stats[a] > stats[b] ? a : b);
+                    const glowColor = colors[dominantCat] + '66'; // Add transparency (40% hex)
+
+                    // 4. Size Scaling
+                    const baseSize = 40;
+                    const bonus = Math.min(Math.log10(count) * 15, 30);
+                    const size = baseSize + bonus;
+
+                    return new DivIcon({
+                        html: `
+                            <div class="relative flex items-center justify-center w-full h-full group hover:scale-110 transition-transform duration-300" 
+                                 title="${count} conflicts">
+                                <!-- Glow -->
+                                <div class="absolute inset-0 rounded-full blur-md transition-all duration-500 group-hover:blur-lg" 
+                                     style="background: ${glowColor}; opacity: 0.6; transform: scale(1.1);"></div>
+                                
+                                <!-- Chart Container -->
+                                <svg width="${size}" height="${size}" viewBox="0 0 40 40" class="transform -rotate-90 drop-shadow-2xl relative z-10">
+                                    <!-- Background Circle (Dark) -->
+                                    <circle r="${radius}" cx="20" cy="20" fill="#0f172a" stroke="#0f172a" stroke-width="6" />
+                                    
+                                    <!-- Segments -->
+                                    ${svgSegments}
+
+                                    <!-- Inner Circle (Hole) -->
+                                    <circle r="${radius - 3.5}" cx="20" cy="20" fill="#0f172a" />
+                                </svg>
+
+                                <!-- Count Label -->
+                                <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                                    <span class="text-white font-bold drop-shadow-md leading-none tracking-tighter" 
+                                          style="font-size: ${Math.max(10, size / 3.2)}px;">
+                                        ${count}
+                                    </span>
+                                </div>
+                            </div>
+                        `,
+                        className: 'bg-transparent',
+                        iconSize: [size, size],
+                    });
+                }}
+            >
+                {conflicts.map(conflict => (
+                    <ConflictMarker key={conflict.id} conflict={conflict} />
+                ))}
+            </MarkerClusterGroup>
         </MapContainer>
     )
 }
