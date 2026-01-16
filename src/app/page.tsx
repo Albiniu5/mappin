@@ -14,10 +14,12 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 import { toast } from 'sonner'
 import { useRef } from 'react'
 import NewsTicker from '@/components/NewsTicker'
+import NotificationCenter from '@/components/NotificationCenter'
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [allConflicts, setAllConflicts] = useState<Conflict[]>([])
+  const [notifications, setNotifications] = useState<Conflict[]>([]) // State for custom notification center
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -45,16 +47,18 @@ export default function Home() {
 
     if (data) {
       console.log("Supabase Data:", data);
-      // Filter out test alerts
-      const conflicts = (data as Conflict[]).filter(c => !c.title.startsWith("TEST ALERT"));
+      // Filter out ANY test alerts (case insensitive)
+      const conflicts = (data as Conflict[]).filter(c => !c.title.toUpperCase().includes("TEST"));
 
       // NOTIFICATION LOGIC
       // 1. Identify which IDs are new (not in our seen set)
       const newItems = conflicts.filter(c => !seenIdsRef.current.has(c.id));
 
       // 2. Determine "Freshness" threshold (e.g. items created in last 1 hour)
-      // This allows us to notify on Page Load for *very recent* items, without spamming entire history.
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+      // Collect items that should trigger a notification
+      const itemsToNotify: Conflict[] = [];
 
       newItems.forEach(item => {
         // Condition A: It's a subsequent update (we already have seen IDs, so this is definitely new arrival)
@@ -64,26 +68,23 @@ export default function Home() {
         const isFresh = new Date(item.created_at) > oneHourAgo;
 
         if (isSubsequentUpdate || isFresh) {
-          // Deduplicate toasts (Sonner might handle this, but let's be safe)
-          // Actually, we just rely on the loop.
-          // Limit to max 5 is handled by layout, but we don't want to fire 50 toasts at once.
-          // So we only fire if it's in the top 5 of *this batch*?
-          // Actually, let's just fire. Layout handles the stack.
-
-          toast.info(item.title, {
-            id: `conflict-${item.id}`, // Deduplication ID
-            description: `${item.location_name || 'Unknown Location'} • ${format(new Date(item.published_at), 'HH:mm')}`,
-            duration: Infinity,
-            dismissible: true,
-            action: {
-              label: 'Locate',
-              onClick: () => {
-                setCurrentDate(new Date(item.published_at))
-              }
-            }
-          })
+          itemsToNotify.push(item);
         }
       });
+
+      // If we have new items to notify, update the state
+      // We prepend them to the existing list and keep max 5
+      if (itemsToNotify.length > 0) {
+        setNotifications(prev => {
+          // Combine new items + previous items
+          const combined = [...itemsToNotify, ...prev];
+          // Ensure uniqueness just in case (by ID)
+          const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+          // Sort by published_at desc just to be sure, or keep order of arrival? 
+          // Usually newest on top.
+          return unique.slice(0, 5);
+        });
+      }
 
       // 3. Update seen IDs
       conflicts.forEach(c => seenIdsRef.current.add(c.id));
@@ -273,7 +274,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.17</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.20</span></p>
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
@@ -493,6 +494,18 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Custom Notification Center (Top Middle) */}
+      <NotificationCenter
+        notifications={notifications}
+        onLocate={(item) => {
+          setCurrentDate(new Date(item.published_at))
+        }}
+        onDismiss={(id) => {
+          setNotifications(prev => prev.filter(n => n.id !== id))
+        }}
+        onClearAll={() => setNotifications([])}
+      />
 
       {/* News Ticker */}
       <NewsTicker conflicts={filteredConflicts} />
