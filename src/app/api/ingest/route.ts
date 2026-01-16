@@ -1,20 +1,9 @@
 
 import { NextResponse } from 'next/server';
 import { fetchRSS } from '@/lib/rss';
-import { extractConflictData } from '@/lib/ai';
-import { supabase } from '@/lib/supabase';
-import { Database } from '@/types/supabase';
 
-
-import { fallbackExtraction } from '@/lib/extraction';
-
-// Helper to delay for rate limits
+// Helper to delay for rate limits (if needed)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Removed local fallbackExtraction definition
-
-
-
 
 export async function GET() {
     const RSS_URLS = [
@@ -34,75 +23,76 @@ export async function GET() {
         'https://www.middleeasteye.net/rss',
         'https://www.defensenews.com/arc/outboundfeeds/rss/',
         'https://www.crisisgroup.org/rss.xml',
+        // Specialized & Regional
+        'https://iswresearch.org/feeds/posts/default', // Institute for the Study of War
+        'https://kyivindependent.com/news-archive/rss', // Ukraine Specific
+        'https://www.scmp.com/rss/3/feed', // South China Morning Post (Asia)
+        'https://peacekeeping.un.org/en/rss.xml', // UN Peacekeeping
+        'https://www.navalnews.com/feed/', // Naval News
     ];
 
     let totalProcessed = 0;
     let totalErrors = 0;
-    const MAX_ITEMS_PER_FEED = 10; // Process up to 10 items per feed
+    const MAX_ITEMS_PER_FEED = 5; // Reduced for speed, n8n handles deduplication
 
     try {
+        const allReports = [];
+
+        console.log(`[Ingest] Starting RSS fetch cycle...`);
+
         for (const url of RSS_URLS) {
-            console.log(`Fetching ${url}...`);
-            const items = await fetchRSS(url);
-            let feedProcessed = 0;
+            try {
+                console.log(`[Ingest] Fetching ${url}...`);
+                const items = await fetchRSS(url);
 
-            for (const item of items) {
-                if (feedProcessed >= MAX_ITEMS_PER_FEED) break;
+                // Format for n8n
+                const reports = items.slice(0, MAX_ITEMS_PER_FEED).map(item => ({
+                    title: item.title,
+                    body: item.description,
+                    url: item.link,
+                    date: new Date(item.pubDate).toISOString(),
+                    // Optional: Hint primary country if available in title?
+                    // n8n AI will handle this.
+                }));
 
-                // Check if exists
-                const { data: existing } = await supabase
-                    .from('conflicts')
-                    .select('id')
-                    .eq('source_url', item.link)
-                    .single();
+                allReports.push(...reports);
+                await delay(500); // Be nice to RSS servers
 
-                if (existing) continue;
-
-                // TEMPORARILY USING FALLBACK ONLY FOR SPEED
-                // const aiData = await extractConflictData(item.title, item.description);
-                const aiData = fallbackExtraction(item.title, item.description);
-
-                if (aiData) {
-                    const conflictData: Database['public']['Tables']['conflicts']['Insert'] = {
-                        title: item.title,
-                        description: aiData.summary,
-                        source_url: item.link,
-                        published_at: new Date(item.pubDate).toISOString(),
-                        latitude: aiData.latitude,
-                        longitude: aiData.longitude,
-                        location_name: aiData.location_name,
-                        category: aiData.category,
-                        severity: aiData.severity,
-                    };
-
-                    // @ts-ignore - Supabase type generation issue, works at runtime
-                    const { error } = await supabase.from('conflicts').insert(conflictData);
-
-                    if (error) {
-                        console.error('DB Insert Error:', error);
-                        totalErrors++;
-                    } else {
-                        console.log(`Inserted: ${item.title}`);
-                        totalProcessed++;
-                        feedProcessed++;
-                    }
-                } else {
-                    // Skip non-conflict news
-                    console.log(`Skipped (not conflict-related): ${item.title.substring(0, 50)}...`);
-                }
-
-                // No delay needed for fallback
-                // await delay(2000);
+            } catch (e: any) {
+                console.error(`[Ingest] Failed to fetch ${url}:`, e.message);
+                totalErrors++;
             }
+        }
+
+        console.log(`[Ingest] Collected ${allReports.length} reports. Forwarding to n8n...`);
+
+        if (allReports.length > 0) {
+            // Forward to n8n Webhook
+            const n8nWebhookUrl = 'http://localhost:5678/webhook/ingest-ai';
+
+            const response = await fetch(n8nWebhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reports: allReports })
+            });
+
+            if (!response.ok) {
+                throw new Error(`n8n responded with ${response.status}`);
+            }
+
+            console.log('[Ingest] Success! n8n accepted the payload.');
+            totalProcessed = allReports.length;
         }
 
         return NextResponse.json({
             success: true,
             processed: totalProcessed,
-            errors: totalErrors
+            errors: totalErrors,
+            message: "RSS Ingestion Triggered Successfully"
         });
 
     } catch (error: any) {
+        console.error('[Ingest] Critical Error:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
