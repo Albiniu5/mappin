@@ -73,7 +73,7 @@ export async function GET() {
             const response = await fetch(n8nWebhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reports: allReports })
+                body: JSON.stringify({ items: allReports })
             });
 
             if (!response.ok) {
