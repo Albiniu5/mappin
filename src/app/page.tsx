@@ -13,6 +13,7 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 
 import { toast } from 'sonner'
 import { useRef } from 'react'
+import NewsTicker from '@/components/NewsTicker'
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
@@ -27,7 +28,8 @@ export default function Home() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
 
   // Track seen IDs to detect new items for notifications
-  const seenIdsRef = useRef<Set<number>>(new Set())
+  // Using <any> to be safe against ID type (number vs string) mismatches
+  const seenIdsRef = useRef<Set<any>>(new Set())
   // Use a strictly local ref to avoid re-triggering effects, 
   // but wait... invalidating strict mode might double toast. 
   // We'll trust the Set to deduplicate.
@@ -260,7 +262,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.15</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.16</span></p>
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
