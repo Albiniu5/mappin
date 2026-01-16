@@ -40,7 +40,7 @@ const MapController = () => {
     useEffect(() => {
         const handleFlyTo = (e: any) => {
             const { lat, lng, zoom } = e.detail;
-            if (lat && lng) {
+            if (lat !== undefined && lng !== undefined) {
                 map.flyTo([lat, lng], zoom || 8, { duration: 2 });
             }
         };
@@ -52,26 +52,7 @@ const MapController = () => {
     return null;
 }
 
-const ZoomOutButton = () => {
-    const map = useMap()
 
-    return (
-        <div className="leaflet-top leaflet-right">
-            <div className="leaflet-control leaflet-bar">
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        map.flyTo([20, 0], 2.5, { duration: 1.5 });
-                    }}
-                    className="w-[30px] h-[30px] bg-white hover:bg-slate-100 flex items-center justify-center cursor-pointer border-b-2 border-slate-300"
-                    title="Reset to Global View"
-                >
-                    <Globe className="w-4 h-4 text-slate-700" />
-                </button>
-            </div>
-        </div>
-    )
-}
 
 export default function ConflictMap({ conflicts = [], onClusterClick }: ConflictMapProps) {
     console.log("ConflictMap received conflicts:", conflicts);
@@ -90,8 +71,8 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
             // Find matching conflict by coordinates THAT HAS NOT BEEN CLAIMED YET
             const match = conflicts.find(c =>
                 !claimedIds.has(c.id) &&
-                Math.abs(c.latitude - markerPos.lat) < 0.0001 &&
-                Math.abs(c.longitude - markerPos.lng) < 0.0001
+                Math.abs(c.latitude - markerPos.lat) < 0.0005 &&
+                Math.abs(c.longitude - markerPos.lng) < 0.0005
             );
 
             if (match) {
@@ -118,7 +99,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
         >
             <FixLeafletIcon />
             <MapController />
-            <ZoomOutButton />
+            {/* ZoomOutButton removed as functionality moved to Timeline */}
             {/* Dark themed tiles */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -153,8 +134,8 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                         // Find match (simple strict equality usually works for unchanged data)
                         // Use a small epsilon for float precision safety
                         const match = conflicts.find(c =>
-                            Math.abs(c.latitude - pos.lat) < 0.00001 &&
-                            Math.abs(c.longitude - pos.lng) < 0.00001
+                            Math.abs(c.latitude - pos.lat) < 0.0005 &&
+                            Math.abs(c.longitude - pos.lng) < 0.0005
                         );
                         if (match) {
                             const cat = ['Armed Conflict', 'Protest', 'Political Unrest'].includes(match.category)
@@ -209,28 +190,22 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
 
                     return new DivIcon({
                         html: `
-                            <div class="relative flex items-center justify-center w-full h-full group hover:scale-110 transition-transform duration-300" 
-                                 title="${count} conflicts">
+                            <div style="width: ${size}px; height: ${size}px;" class="relative flex items-center justify-center group hover:scale-110 transition-transform duration-300">
                                 <!-- Glow -->
                                 <div class="absolute inset-0 rounded-full blur-md transition-all duration-500 group-hover:blur-lg" 
                                      style="background: ${glowColor}; opacity: 0.6; transform: scale(1.1);"></div>
                                 
                                 <!-- Chart Container -->
                                 <svg width="${size}" height="${size}" viewBox="0 0 40 40" class="transform -rotate-90 drop-shadow-2xl relative z-10">
-                                    <!-- Background Circle (Dark) -->
                                     <circle r="${radius}" cx="20" cy="20" fill="#0f172a" stroke="#0f172a" stroke-width="6" />
-                                    
-                                    <!-- Segments -->
                                     ${svgSegments}
-
-                                    <!-- Inner Circle (Hole) -->
                                     <circle r="${radius - 3.5}" cx="20" cy="20" fill="#0f172a" />
                                 </svg>
 
                                 <!-- Count Label -->
-                                <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                                    <span class="text-white font-bold drop-shadow-md leading-none tracking-tighter font-sans" 
-                                          style="font-size: ${fontSize}px;">
+                                <div class="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+                                    <span style="font-size: ${fontSize}px; color: white; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.8);" 
+                                          class="font-bold font-sans">
                                         ${count}
                                     </span>
                                 </div>
@@ -238,6 +213,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                         `,
                         className: 'bg-transparent',
                         iconSize: [size, size],
+                        iconAnchor: [size / 2, size / 2], // Center the icon accurately
                     });
                 }}
             >

@@ -262,18 +262,39 @@ export default function Home() {
           <div>
             <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mb-2">Filter by Category</div>
             <div className="flex flex-wrap gap-2">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium ${selectedCategory === cat
+              {categories.map(cat => {
+                // Define dynamic styles
+                const isSelected = selectedCategory === cat;
+                let styleClass = '';
+
+                if (cat === 'Armed Conflict') {
+                  styleClass = isSelected
+                    ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-500/30'
+                    : 'bg-red-900/20 border-red-800 text-red-500 hover:bg-red-900/40 hover:border-red-600';
+                } else if (cat === 'Protest') {
+                  styleClass = isSelected
+                    ? 'bg-amber-500 border-amber-400 text-white shadow-lg shadow-amber-500/30'
+                    : 'bg-amber-900/20 border-amber-800 text-amber-500 hover:bg-amber-900/40 hover:border-amber-600';
+                } else if (cat === 'Political Unrest') {
+                  styleClass = isSelected
+                    ? 'bg-orange-600 border-orange-500 text-white shadow-lg shadow-orange-500/30'
+                    : 'bg-orange-900/20 border-orange-800 text-orange-500 hover:bg-orange-900/40 hover:border-orange-600';
+                } else { // Other
+                  styleClass = isSelected
                     ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-slate-800/50 border-slate-600 text-slate-400 hover:border-slate-500 hover:bg-slate-800'
-                    }`}
-                >
-                  {cat}
-                </button>
-              ))}
+                    : 'bg-blue-900/20 border-blue-800 text-blue-500 hover:bg-blue-900/40 hover:border-blue-600';
+                }
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium ${styleClass}`}
+                  >
+                    {cat}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
