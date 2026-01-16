@@ -49,30 +49,41 @@ export default function Home() {
       const conflicts = (data as Conflict[]).filter(c => !c.title.startsWith("TEST ALERT"));
 
       // NOTIFICATION LOGIC
-      // 1. Identify which IDs are new
+      // 1. Identify which IDs are new (not in our seen set)
       const newItems = conflicts.filter(c => !seenIdsRef.current.has(c.id));
 
-      // 2. If this is NOT the first load (we have seen things before), notify
-      if (seenIdsRef.current.size > 0 && newItems.length > 0) {
-        // Take only the latest 5 to avoid spam if a huge batch comes in
-        const latestNewItems = newItems.slice(0, 5);
+      // 2. Determine "Freshness" threshold (e.g. items created in last 1 hour)
+      // This allows us to notify on Page Load for *very recent* items, without spamming entire history.
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-        latestNewItems.forEach(item => {
+      newItems.forEach(item => {
+        // Condition A: It's a subsequent update (we already have seen IDs, so this is definitely new arrival)
+        const isSubsequentUpdate = seenIdsRef.current.size > 0;
+
+        // Condition B: It's a "Fresh" item (created recently), so we notify even on first load
+        const isFresh = new Date(item.created_at) > oneHourAgo;
+
+        if (isSubsequentUpdate || isFresh) {
+          // Deduplicate toasts (Sonner might handle this, but let's be safe)
+          // Actually, we just rely on the loop.
+          // Limit to max 5 is handled by layout, but we don't want to fire 50 toasts at once.
+          // So we only fire if it's in the top 5 of *this batch*?
+          // Actually, let's just fire. Layout handles the stack.
+
           toast.info(item.title, {
+            id: `conflict-${item.id}`, // Deduplication ID
             description: `${item.location_name || 'Unknown Location'} • ${format(new Date(item.published_at), 'HH:mm')}`,
-            duration: Infinity, // Persistent until clicked
+            duration: Infinity,
             dismissible: true,
             action: {
               label: 'Locate',
               onClick: () => {
-                // Simple locate logic: set date and maybe searchTerm? 
-                // For now just setting date ensures it's visible if filtered
                 setCurrentDate(new Date(item.published_at))
               }
             }
           })
-        })
-      }
+        }
+      });
 
       // 3. Update seen IDs
       conflicts.forEach(c => seenIdsRef.current.add(c.id));
@@ -262,7 +273,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
               Global Conflict Tracker
             </h1>
-            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.16</span></p>
+            <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v1.16.17</span></p>
 
             {/* Stats Panel */}
             <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
