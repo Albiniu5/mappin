@@ -205,6 +205,7 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
                     const baseSize = 40;
                     const bonus = Math.min(Math.log10(count) * 15, 30);
                     const size = baseSize + bonus;
+                    const fontSize = Math.round(size * 0.45); // Font is 45% of the total diameter
 
                     return new DivIcon({
                         html: `
@@ -228,8 +229,8 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
 
                                 <!-- Count Label -->
                                 <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                                    <span class="text-white font-bold drop-shadow-md leading-none tracking-tighter" 
-                                          style="font-size: ${Math.max(10, size / 3.2)}px;">
+                                    <span class="text-white font-bold drop-shadow-md leading-none tracking-tighter font-sans" 
+                                          style="font-size: ${fontSize}px;">
                                         ${count}
                                     </span>
                                 </div>
