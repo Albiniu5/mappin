@@ -33,7 +33,7 @@ export async function GET() {
 
     let totalProcessed = 0;
     let totalErrors = 0;
-    const MAX_ITEMS_PER_FEED = 5; // Reduced for speed, n8n handles deduplication
+    const MAX_ITEMS_PER_FEED = 20; // Increased to capture more news (n8n deduplicates)
 
     try {
         const allReports = [];
