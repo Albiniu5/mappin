@@ -6,7 +6,7 @@ import Timeline from '@/components/Timeline'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/supabase'
-import { Search, Loader2, Database as DatabaseIcon, X } from 'lucide-react'
+import { Search, Loader2, X } from 'lucide-react'
 import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
@@ -277,131 +277,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Admin: Appname Input */}
-          <div className="w-full mt-2">
-            <input
-              type="text"
-              placeholder="ReliefWeb Appname (e.g. my-app-v1)"
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none focus:border-blue-500 mb-1"
-              id="appname-input"
-            />
-            <p className="text-[9px] text-slate-500">
-              Required for backfill. <a href="https://apidoc.reliefweb.int/parameters#appname" target="_blank" className="underline hover:text-blue-400">Register here</a> if blocked.
-            </p>
-          </div>
 
-          {/* Admin: Backfill Button */}
-          <button
-            onClick={async () => {
-              const btn = document.getElementById('backfill-btn');
-              const input = document.getElementById('appname-input') as HTMLInputElement;
-              const customAppname = input?.value?.trim();
-
-              if (btn) btn.innerHTML = '⏳ Initializing...';
-
-              setLoading(true);
-
-              try {
-                // Configuration
-                const BASE_URL = 'https://api.reliefweb.int/v1/reports';
-                const MAX_LOOPS = 10;
-                const BATCH_SIZE = 1000;
-                const fiveYearsAgo = new Date();
-                fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-                const dateStr = fiveYearsAgo.toISOString().split('.')[0] + '+00:00';
-
-                let totalProcessed = 0;
-                let totalStats = { processed: 0, inserted: 0, errors: 0 };
-
-                for (let i = 0; i < MAX_LOOPS; i++) {
-                  const offset = i * BATCH_SIZE;
-                  if (btn) btn.innerHTML = `⏳ Fetching batch ${i + 1}/${MAX_LOOPS}...`;
-
-                  // Priority: Custom Input -> Defaults
-                  const APPNAMES = [customAppname, 'rwint-user-0', 'apidoc', 'reliefweb-website', 'reliefweb', 'sc-api'].filter(Boolean);
-                  let data;
-                  let usedAppname;
-
-                  // Rotation Loop
-                  for (const appname of APPNAMES) {
-                    try {
-                      console.log(`Trying appname: ${appname}`);
-                      const params = new URLSearchParams([
-                        ['appname', appname],
-                        ['profile', 'list'],
-                        ['preset', 'latest'],
-                        ['limit', BATCH_SIZE.toString()],
-                        ['offset', offset.toString()],
-                        ['query[value]', 'conflict OR war OR attack OR military OR violence OR protest OR unrest OR crisis OR shelling'],
-                        ['filter[field]', 'date.created'],
-                        ['filter[value][from]', dateStr],
-                        ['fields[include][]', 'title'],
-                        ['fields[include][]', 'body'],
-                        ['fields[include][]', 'url'],
-                        ['fields[include][]', 'date'],
-                        ['fields[include][]', 'primary_country']
-                      ]);
-
-                      const url = `${BASE_URL}?${params.toString().replace(/%5B%5D=/g, '[]=')}`;
-                      const res = await fetch(url); // Standard fetch, CORS enabled by default
-                      const json = await res.json();
-
-                      if (!json.error) {
-                        data = json;
-                        usedAppname = appname;
-                        console.log(`Success with ${appname}`);
-                        break; // Success!
-                      } else {
-                        console.warn(`Appname ${appname} returned API error:`, json.error);
-                      }
-                    } catch (e) {
-                      console.warn(`Appname ${appname} network error:`, e);
-                    }
-                  }
-
-                  if (!data || !data.data || data.data.length === 0) {
-                    console.warn("No more data from ReliefWeb (or all keys blocked)", data);
-                    if (i === 0) alert(`Warning: Batch 1 failed. All keys blocked or no data.`);
-                    break;
-                  }
-
-                  // Send to Server for Saving
-                  if (btn) btn.innerHTML = `💾 Saving batch ${i + 1}/${MAX_LOOPS}...`;
-
-                  const saveRes = await fetch('/api/ingest/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reports: data.data })
-                  });
-
-                  const saveResult = await saveRes.json();
-                  if (saveResult.success) {
-                    totalStats.processed += saveResult.processed || 0;
-                    totalStats.inserted += saveResult.inserted || 0;
-                    totalStats.errors += saveResult.errors || 0;
-                  }
-
-                  totalProcessed += data.data.length;
-                  await new Promise(r => setTimeout(r, 500)); // Be nice to API
-                }
-
-                alert(`Success! Processed ${totalStats.processed} items. Inserted ${totalStats.inserted} new conflicts.`);
-                fetchConflicts();
-
-              } catch (e: any) {
-                console.error('Backfill failed:', e);
-                alert(`Backfill Error: ${e.message}`);
-              } finally {
-                setLoading(false);
-                if (btn) btn.innerHTML = '📜 Populate History (5 Years)';
-              }
-            }}
-            id="backfill-btn"
-            className="mt-2 w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-400 flex items-center justify-center gap-2 transition-all"
-          >
-            <DatabaseIcon size={12} />
-            📜 Populate History (5 Years)
-          </button>
 
           {/* Results Count */}
           <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-700">
