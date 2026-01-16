@@ -90,9 +90,17 @@ export default function ConflictMap({ conflicts = [], onClusterClick }: Conflict
         const markers = cluster.getAllChildMarkers();
         const markerIds = new Set(markers.map((m: any) => m.options.title));
 
+        console.log('🎯 Cluster clicked!', {
+            markerCount: markers.length,
+            markerIds: Array.from(markerIds),
+            totalConflicts: conflicts.length
+        });
+
         const clusterConflicts = conflicts
             .filter(c => markerIds.has(c.id))
             .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+
+        console.log('📰 Found conflicts:', clusterConflicts.length);
 
         if (onClusterClick) onClusterClick(clusterConflicts);
 
