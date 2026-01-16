@@ -36,59 +36,50 @@ export async function GET() {
     const MAX_ITEMS_PER_FEED = 20; // Increased to capture more news (n8n deduplicates)
 
     try {
-        const allReports = [];
-
         console.log(`[Ingest] Starting RSS fetch cycle...`);
+        const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest-ai';
 
         for (const url of RSS_URLS) {
             try {
                 console.log(`[Ingest] Fetching ${url}...`);
                 const items = await fetchRSS(url);
 
-                // Format for n8n
-                const reports = items.slice(0, MAX_ITEMS_PER_FEED).map(item => ({
-                    title: item.title,
-                    description: item.description,
-                    url: item.link,
-                    date: new Date(item.pubDate).toISOString(),
-                    // Optional: Hint primary country if available in title?
-                    // n8n AI will handle this.
-                }));
+                if (items.length > 0) {
+                    // Format for n8n
+                    const reports = items.slice(0, MAX_ITEMS_PER_FEED).map(item => ({
+                        title: item.title,
+                        description: item.description,
+                        url: item.link,
+                        date: new Date(item.pubDate).toISOString(),
+                    }));
 
-                allReports.push(...reports);
-                await delay(500); // Be nice to RSS servers
+                    // Send BATCH immediately to n8n to spread out load (rate limiting)
+                    console.log(`[Ingest] Sending ${reports.length} items from ${url} to n8n...`);
+                    await fetch(n8nWebhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ items: reports })
+                    });
+
+                    totalProcessed += reports.length;
+
+                    // Wait 2 seconds between feeds to prevent Gemini API rate limits in n8n
+                    await delay(2000);
+                }
 
             } catch (e: any) {
-                console.error(`[Ingest] Failed to fetch ${url}:`, e.message);
+                console.error(`[Ingest] Failed to fetch/send ${url}:`, e.message);
                 totalErrors++;
             }
         }
 
-        console.log(`[Ingest] Collected ${allReports.length} reports. Forwarding to n8n...`);
-
-        if (allReports.length > 0) {
-            // Forward to n8n Webhook
-            const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest-ai';
-
-            const response = await fetch(n8nWebhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: allReports })
-            });
-
-            if (!response.ok) {
-                throw new Error(`n8n responded with ${response.status}`);
-            }
-
-            console.log('[Ingest] Success! n8n accepted the payload.');
-            totalProcessed = allReports.length;
-        }
+        console.log(`[Ingest] Cycle complete. Processed ${totalProcessed} items.`);
 
         return NextResponse.json({
             success: true,
             processed: totalProcessed,
             errors: totalErrors,
-            message: "RSS Ingestion Triggered Successfully"
+            message: "RSS Ingestion Triggered Successfully (Batched)"
         });
 
     } catch (error: any) {
