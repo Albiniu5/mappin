@@ -6,7 +6,7 @@ import Timeline from '@/components/Timeline'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/supabase'
-import { Search, Loader2, X } from 'lucide-react'
+import { Search, Loader2, X, Maximize2, Minimize2 } from 'lucide-react'
 import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
@@ -34,6 +34,7 @@ export default function Home() {
   const [showClusterSidebar, setShowClusterSidebar] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null)
+  const [sidebarExpanded, setSidebarExpanded] = useState(false)
 
   // Track seen IDs to detect new items for notifications
   // Using <any> to be safe against ID type (number vs string) mismatches
@@ -182,6 +183,13 @@ export default function Home() {
     }
   }, [isPlaying, playbackSpeed])
 
+  // Auto-expand article analysis when there's only 1 item in sidebar
+  useEffect(() => {
+    if (showClusterSidebar && clusterConflicts.length === 1) {
+      setSelectedArticleId(clusterConflicts[0].id)
+    }
+  }, [showClusterSidebar, clusterConflicts])
+
   // Filter conflicts based on selected date, search text, and category
   const filteredConflicts = useMemo(() => {
     // Pre-calculate filter values to avoid re-calculating inside the loop
@@ -250,6 +258,14 @@ export default function Home() {
     return filteredConflicts;
   }, [allConflicts, currentDate, filteredConflicts]);
 
+  // Today's conflicts (midnight to midnight in user's local timezone)
+  const todayConflicts = useMemo(() => {
+    // Get start of today in user's local timezone
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    return allConflicts.filter(c => new Date(c.published_at) >= startOfToday);
+  }, [allConflicts]);
+
   // Ensure safe max date for timeline
   const timelineMaxDate = useMemo(() => {
     try {
@@ -283,18 +299,28 @@ export default function Home() {
             <p className="text-slate-400 text-sm mt-1">Real-time situational awareness <span className="text-xs text-emerald-400 ml-2">v{packageJson.version}</span></p>
 
 
-            {/* Stats Panel */}
-            <div className="mt-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg p-3 shadow-lg">
-              <div className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-2">24h Activity</div>
-              <div className="text-3xl font-bold text-blue-400">{statsConflicts.length}</div>
-              <div className="mt-2 flex gap-2 text-[10px]">
-                <span className="bg-red-600/20 text-red-400 px-2 py-1 rounded">
+            {/* Stats Panel - Compact standalone box */}
+            <div className="mt-3 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg px-3 py-2 shadow-lg inline-block">
+              <div className="flex gap-5 items-end">
+                {/* 24H Activity */}
+                <div>
+                  <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">24h</div>
+                  <div className="text-3xl font-bold text-blue-400 leading-none">{statsConflicts.length}</div>
+                </div>
+                {/* Today's Activity */}
+                <div className="border-l border-slate-700 pl-4">
+                  <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Today</div>
+                  <div className="text-3xl font-bold text-emerald-400 leading-none">{todayConflicts.length}</div>
+                </div>
+              </div>
+              <div className="mt-1.5 flex gap-1.5 text-[10px]">
+                <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">
                   ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
                 </span>
-                <span className="bg-amber-600/20 text-amber-400 px-2 py-1 rounded">
+                <span className="bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded">
                   📣 {statsConflicts.filter(c => c.category === 'Protest').length}
                 </span>
-                <span className="bg-orange-600/20 text-orange-400 px-2 py-1 rounded">
+                <span className="bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded">
                   ⚠️ {statsConflicts.filter(c => c.category === 'Political Unrest').length}
                 </span>
               </div>
@@ -309,35 +335,35 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Search and Filters Overlay (Top Right) */}
-      <div className="absolute top-6 right-6 z-[1000] flex flex-col gap-3 items-end pointer-events-none">
+      {/* Search and Filters Overlay (Top Right) - Compact */}
+      <div className="absolute top-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
 
         {/* Filter Controls */}
-        <div className="bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-3 w-80 transition-all">
+        <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-2 w-64 transition-all">
           {/* Search Input with Icon */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
             <input
               type="text"
               placeholder="Search location or keyword..."
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-10 pr-10 py-2.5 text-sm text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-8 pr-8 py-2 text-sm text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
           {/* Category Filters */}
           <div>
-            <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mb-2">Filter by Category</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mb-1.5">Filter by Category</div>
+            <div className="flex flex-wrap gap-1.5">
               {categories.map(cat => {
                 // Define dynamic styles
                 const isSelected = selectedCategory === cat;
@@ -365,7 +391,7 @@ export default function Home() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium ${styleClass}`}
+                    className={`text-[11px] px-2.5 py-1 rounded-md border transition-all font-medium ${styleClass}`}
                   >
                     {cat}
                   </button>
@@ -374,10 +400,8 @@ export default function Home() {
             </div>
           </div>
 
-
-
           {/* Results Count */}
-          <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-700">
+          <div className="text-[10px] text-slate-500 font-mono pt-1.5 border-t border-slate-700">
             Showing {filteredConflicts.length} of {allConflicts.length} conflicts
           </div>
         </div>
@@ -410,7 +434,10 @@ export default function Home() {
 
       {/* Cluster Sidebar: Situation Report */}
       {showClusterSidebar && (
-        <div className="absolute right-0 top-0 h-full w-[400px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div
+          className={`absolute right-0 top-0 h-full bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-all ease-out`}
+          style={{ width: sidebarExpanded ? '700px' : '400px' }}
+        >
           {/* Header */}
           <div className="p-5 border-b border-slate-700 flex justify-between items-start bg-slate-900">
             <div>
@@ -423,12 +450,21 @@ export default function Home() {
                 Live Monitoring Active • {clusterConflicts.length} Reports
               </p>
             </div>
-            <button
-              onClick={() => setShowClusterSidebar(false)}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white transition-all flex items-center justify-center border border-slate-700 hover:border-blue-500"
+                title={sidebarExpanded ? "Collapse panel" : "Expand panel"}
+              >
+                {sidebarExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => setShowClusterSidebar(false)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Intel Stats */}
@@ -513,10 +549,17 @@ export default function Home() {
             )}
           </div>
         </div>
-      )}
+      )
+      }
 
-      {/* Custom Notification Center + Judge Center (Top Middle) */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[3000] flex items-center gap-3">
+      {/* Custom Notification Center + Judge Center (shifts left when sidebar expanded) */}
+      <div
+        className="fixed top-6 z-[3000] flex items-center gap-3 transition-all duration-500 ease-out"
+        style={{
+          left: sidebarExpanded && showClusterSidebar ? 'calc(50% - 175px)' : '50%',
+          transform: 'translateX(-50%)'
+        }}
+      >
         <NotificationCenter
           notifications={notifications}
           onLocate={(item) => {
@@ -542,12 +585,14 @@ export default function Home() {
       <NewsTicker conflicts={filteredConflicts} />
 
       {/* Loading Indicator */}
-      {loading && (
-        <div className="absolute inset-0 z-[2000] bg-slate-950 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
+      {
+        loading && (
+          <div className="absolute inset-0 z-[2000] bg-slate-950 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        )
+      }
 
-    </main>
+    </main >
   )
 }
