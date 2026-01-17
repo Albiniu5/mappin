@@ -23,6 +23,8 @@ interface AIAnalysisPanelProps {
         published_at: string;
         location_name: string | null;
         category: string;
+        narrative_analysis?: string | null; // NEW
+        related_reports?: any | null; // NEW (Json)
     };
 }
 
@@ -30,6 +32,13 @@ export default function AIAnalysisPanel({ conflict }: AIAnalysisPanelProps) {
     const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Helper to parse related reports if they are JSON
+    const relatedReports = Array.isArray(conflict.related_reports)
+        ? conflict.related_reports
+        : typeof conflict.related_reports === 'string'
+            ? JSON.parse(conflict.related_reports)
+            : [];
 
     useEffect(() => {
         let isMounted = true;
@@ -104,15 +113,53 @@ export default function AIAnalysisPanel({ conflict }: AIAnalysisPanelProps) {
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                     <span className="text-xs font-bold text-blue-100 uppercase tracking-widest">
-                        AI Context
+                        Intelligence Brief
                     </span>
                 </div>
-                <span className="text-[9px] text-blue-300/60 uppercase tracking-wider">
-                    Verified Knowledge
-                </span>
+                {conflict.narrative_analysis && (
+                    <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wider font-bold">
+                        Judge Verdict Available ⚖️
+                    </span>
+                )}
             </div>
 
             <div className="p-5 space-y-6">
+
+                {/* 0. THE VERDICT (Narrative Analysis) - Highlights if available */}
+                {conflict.narrative_analysis && (
+                    <section className="animate-in fade-in slide-in-from-top-2 duration-700">
+                        <div className="relative">
+                            <div className="absolute -left-1 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
+                            <h4 className="text-xs font-extrabold text-indigo-300 uppercase tracking-wider mb-2 flex items-center gap-2 pl-3">
+                                ⚖️ The Verdict (Narrative Comparison)
+                            </h4>
+                            <div className="pl-3">
+                                <p className="text-sm text-slate-200 leading-relaxed bg-indigo-900/20 p-3 rounded-lg border border-indigo-500/30 shadow-inner italic">
+                                    "{conflict.narrative_analysis}"
+                                </p>
+
+                                {/* Related Evidence Links */}
+                                {relatedReports.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        <span className="text-[10px] text-slate-500 uppercase font-bold self-center">Evidence:</span>
+                                        {relatedReports.map((report: any, idx: number) => (
+                                            <a
+                                                key={idx}
+                                                href={report.url || report.link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1 text-[10px] text-blue-400 transition-colors"
+                                            >
+                                                <ExternalLink className="w-2.5 h-2.5" />
+                                                {report.source || new URL(report.url || report.link).hostname.replace('www.', '')}
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* 1. Summary */}
                 <section>

@@ -33,12 +33,12 @@ export async function GET() {
 
     let totalProcessed = 0;
     let totalErrors = 0;
-    const MAX_ITEMS_PER_FEED = 15; // Conservative limit to avoid Gemini API rate limits
+    const MAX_ITEMS_PER_FEED = 3; // Reduced to prevent n8n timeouts with Gemini Pro
 
     try {
         console.log(`[Ingest] Starting RSS fetch cycle...`);
-        // Verified working URL
-        const n8nWebhookUrl = 'http://localhost:5678/webhook/ingest-live';
+        // Use Env Var, fallback to localhost only if missing
+        const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ingest-live';
         console.log(`[Ingest] Using n8n Webhook URL: ${n8nWebhookUrl}`);
 
         for (const url of RSS_URLS) {

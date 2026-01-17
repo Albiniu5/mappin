@@ -68,7 +68,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
     }
 
     return (
-        <div ref={containerRef} className="fixed top-6 left-1/2 -translate-x-1/2 z-[3000] flex flex-col items-center">
+        <div ref={containerRef} className="relative flex flex-col items-center">
             {/* Toggle Button / Icon */}
             <motion.button
                 layout

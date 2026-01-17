@@ -23,6 +23,8 @@ export interface Database {
                     category: string
                     severity: number
                     created_at: string
+                    related_reports: Json | null
+                    narrative_analysis: string | null
                 }
                 Insert: {
                     id?: string
@@ -36,6 +38,8 @@ export interface Database {
                     category: string
                     severity: number
                     created_at?: string
+                    related_reports?: Json | null
+                    narrative_analysis?: string | null
                 }
                 Update: {
                     id?: string
@@ -49,6 +53,8 @@ export interface Database {
                     category?: string
                     severity?: number
                     created_at?: string
+                    related_reports?: Json | null
+                    narrative_analysis?: string | null
                 }
             }
         }

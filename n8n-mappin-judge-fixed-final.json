@@ -1,0 +1,85 @@
+{
+    "name": "Mappin + Judge WORKING ⚖️",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ingest-live",
+                "responseMode": "onReceived"
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                100,
+                300
+            ],
+            "webhookId": "mappin-ingest-live"
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "body.items"
+            },
+            "id": "split-node",
+            "name": "Split Items",
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 3,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "YOUR_GEMINI_API_KEY_HERE"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ { \"contents\": [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). Input: Title: \" + $json.title + \" Desc: \" + $json.description } ] } ], \"generationConfig\": { \"responseMimeType\": \"application/json\" } } }}"
+            },
+            "id": "gemini-class",
+            "name": "AI Classifier",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const rawText = $json.candidates[0].content.parts[0].text;\nconst cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\nconst aiData = JSON.parse(cleanText);\nconst inputItem = $('Split Items').item.json;\nreturn {\n  json: {\n    ...aiData,\n    latitude: aiData.latitude || 0,\n    longitude: aiData.longitude || 0,\n    title: inputItem.title,\n    description: aiData.summary || inputItem.description,\n    source_url: inputItem.url,\n    published_at: inputItem.date,\n    created_at: new Date().toISOString()\n  }\n};"
+            },
+            "id": "parse-class",
+            "name": "Parse AI",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/rpc/find_similar_events",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyOTQ1NiwiZXhwIjoyMDgzODA1NDU2fQ.gmyZEnpGO1fSwpI_M7dIRYAuKUvb0lZaYmdl-S4G7os"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyOTQ1NiwiZXhwIjoyMDgzODA1NDU2fQ.gmyZEnpGO1fSwpI_M7dIRYAuKUvb0lZaYm

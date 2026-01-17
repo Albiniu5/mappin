@@ -29,7 +29,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN
 
 ### Gemini API
 ```
-AIzaSyBxy1M6i_AqiDEezTYCWqRorthYTNwqwtA
+AIzaSyCzFKz_vlnP2PImVNFRRXCNdJcvLEBCWH8
 ```
 - **Usage**: AI processing for news categorization and geocoding
 - **Note**: Rate-limited, used in n8n workflow

@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     console.log(`[Analyze] Using ${contentSource} (${contentToAnalyze.length} chars)`);
 
     // 3. Call Gemini with enhanced content
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
     const prompt = `
 You are an analytical assistant integrated into a news intelligence platform.

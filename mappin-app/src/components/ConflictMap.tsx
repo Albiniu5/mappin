@@ -91,7 +91,7 @@ const createDonutIcon = (stats: Record<string, number>, totalCount: number) => {
 };
 
 // Simple ring icon for single items (no count)
-const createRingIcon = (color: string, size: number = 30) => {
+const createRingIcon = (color: string, size: number = 30, hasJudge: boolean = false) => {
     const radius = 16;
     return new L.DivIcon({
         html: `
@@ -104,6 +104,13 @@ const createRingIcon = (color: string, size: number = 30) => {
                     <circle r="${radius}" cx="20" cy="20" fill="#0f172a" stroke="${color}" stroke-width="6" />
                     <circle r="${radius - 3.5}" cx="20" cy="20" fill="#0f172a" />
                 </svg>
+
+                <!-- Judge Badge -->
+                ${hasJudge ? `
+                <div style="position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: #4f46e5; border: 2px solid #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                    <span style="font-size: 10px; line-height: 1;">⚖️</span>
+                </div>
+                ` : ''}
             </div>
         `,
         className: 'bg-transparent',
@@ -409,7 +416,7 @@ export default function ConflictMap({ conflicts, onClusterClick }: ConflictMapPr
                     <Marker
                         key={c.id}
                         position={[c.latitude!, c.longitude!]} // Assumes valid from filter
-                        icon={createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30)}
+                        icon={createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30, !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0))}
                         title={c.title}
                         // @ts-ignore
                         conflictData={c}
@@ -590,12 +597,13 @@ function ActiveClusterLayer({
                                     />
                                 );
 
+                                const hasJudge = !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0);
                                 return (
                                     <Fragment key={`evt-wrapper-${c.id}`}>
                                         {evtConnector}
                                         <Marker
                                             position={evtLatLng}
-                                            icon={createRingIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 20)}
+                                            icon={createRingIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 20, hasJudge)}
                                             eventHandlers={{
                                                 click: (e) => onMarkerClick(e, c)
                                             }}

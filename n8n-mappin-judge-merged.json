@@ -1,0 +1,410 @@
+{
+    "name": "Mappin AI Ingestion + The Judge ⚖️",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ingest-live",
+                "responseMode": "onReceived",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "Webhook POST /ingest-live",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                100,
+                300
+            ],
+            "webhookId": "mappin-ingest"
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "body.items",
+                "options": {}
+            },
+            "id": "split-items",
+            "name": "Split Reports",
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 3,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "YOUR_GEMINI_API_KEY"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). Input: Title: \" + $json.title + \" Desc: \" + $json.description } ] } ] }}"
+                        },
+                        {
+                            "name": "generationConfig",
+                            "value": "={{ { responseMimeType: \"application/json\" } }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-classifier",
+            "name": "AI Classifier",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse Gemini JSON response\ntry {\n  const rawText = $json.candidates[0].content.parts[0].text;\n  const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n  const aiData = JSON.parse(cleanText);\n  \n  const inputItem = $('Split Reports').item.json;\n  \n  return{\n    json: {\n      ...aiData,\n      title: inputItem.title,\n      description: aiData.summary ||inputItem.description,\n      source_url: inputItem.url,\n      published_at: inputItem.date,\n      created_at: new Date().toISOString()\n    }\n  };\n} catch (e) {\n  return { json: { error: 'AI Parse Failed', raw: $json } };\n}"
+            },
+            "id": "parse-ai",
+            "name": "Parse Classifier JSON",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/rpc/find_similar_events",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "p_latitude",
+                            "value": "={{ $json.latitude }}"
+                        },
+                        {
+                            "name": "p_longitude",
+                            "value": "={{ $json.longitude }}"
+                        },
+                        {
+                            "name": "p_published_at",
+                            "value": "={{ $json.published_at }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "search-similar",
+            "name": "Search Similar Events",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "supabase-auth",
+                    "name": "Supabase Service Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "YOUR_GEMINI_API_KEY"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { parts: [ { text: \"You are The Judge ⚖️. Impartial arbiter of truth.\\n\\n>>> CASE DOCKET <<<\\n\\n[PROSECUTION / NEW EVIDENCE]\\nHeadline: \" + $('Parse Classifier JSON').first().json.title + \"\\nSummary: \" + $('Parse Classifier JSON').first().json.summary + \"\\nSource: \" + $('Parse Classifier JSON').first().json.source_url + \"\\n\\n[DEFENSE / EXISTING RECORD]\\nHeadline: \" + ($json[0] ? $json[0].title : \"None\") + \"\\nSummary: \" + ($json[0] ? $json[0].description : \"None\") + \"\\nPrevious Verdict: \" + ($json[0] ? $json[0].narrative_analysis : \"None\") + \"\\n\\n>>> INSTRUCTIONS <<<\\n1. DETERMINE ADMISSIBILITY (Same Event?): Do these reports describe the exact same physical event? If NO existing record, reject (not duplicate).\\n2. DELIVER VERDICT: If SAME event, write 'Verdict' comparing narratives. If NEW event, Dismiss.\\n\\nReturn JSON: {\\\"is_duplicate\\\": boolean, \\\"verdict\\\": string}\" } ] } ] }}"
+                        },
+                        {
+                            "name": "generationConfig",
+                            "value": "={{ { responseMimeType: \"application/json\" } }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "the-judge",
+            "name": "The Judge",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const geminiResp = items[0].json;\nlet content = { is_duplicate: false, verdict: \"\" };\ntry {\n  if (geminiResp.candidates) {\n      content = JSON.parse(geminiResp.candidates[0].content.parts[0].text);\n  }\n} catch (e) {\n  content = { is_duplicate: false, verdict: \"Error parsing verdict\" };\n}\n\n// Get similar items and current item\nconst similarItems = $('Search Similar Events').all();\nconst currentItem = $('Parse Classifier JSON').first().json;\n\n// Merge related reports list\nlet newRelated = [];\ntry {\n   const newReport = { title: currentItem.title,url: currentItem.source_url };\n   if (similarItems.length > 0 && similarItems[0].json[0] && similarItems[0].json[0].related_reports) {\n      newRelated = [...similarItems[0].json[0].related_reports, newReport];\n   } else {\n      newRelated = [newReport];\n   }\n} catch(e) {\n  newRelated = [{ title: currentItem.title, url: currentItem.source_url }];\n}\n\nreturn [ { \n  json: { \n    ...content, \n    existing_id: (similarItems.length > 0 && similarItems[0].json[0]) ? similarItems[0].json[0].id : null,\n    new_related: newRelated,\n    current_item: currentItem\n  } \n} ];"
+            },
+            "id": "parse-verdict",
+            "name": "Parse Verdict",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.is_duplicate }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "check-duplicate",
+            "name": "Is Duplicate?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "PATCH",
+                "url": "={{ \"https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/conflicts?id=eq.\" + $json.existing_id }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "narrative_analysis",
+                            "value": "={{ $json.verdict }}"
+                        },
+                        {
+                            "name": "related_reports",
+                            "value": "={{ $json.new_related }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "update-existing",
+            "name": "Update Existing (Judge)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1700,
+                200
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "supabase-auth",
+                    "name": "Supabase Service Key"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/conflicts",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "value": "={{ $json.current_item.title }}"
+                        },
+                        {
+                            "name": "description",
+                            "value": "={{ $json.current_item.description }}"
+                        },
+                        {
+                            "name": "source_url",
+                            "value": "={{ $json.current_item.source_url }}"
+                        },
+                        {
+                            "name": "published_at",
+                            "value": "={{ $json.current_item.published_at }}"
+                        },
+                        {
+                            "name": "latitude",
+                            "value": "={{ $json.current_item.latitude }}"
+                        },
+                        {
+                            "name": "longitude",
+                            "value": "={{$json.current_item.longitude }}"
+                        },
+                        {
+                            "name": "location_name",
+                            "value": "={{ $json.current_item.location_name }}"
+                        },
+                        {
+                            "name": "category",
+                            "value": "={{ $json.current_item.category }}"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "={{ $json.current_item.severity }}"
+                        }
+                    ]
+                },
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyOTQ1NiwiZXhwIjoyMDgzODA1NDU2fQ.WPE8TMdxsZMQQZd7wVIkwSaDTv-ycbKOSLdpMfvmD7Y"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODIyOTQ1NiwiZXhwIjoyMDgzODA1NDU2fQ.WPE8TMdxsZMQQZd7wVIkwSaDTv-ycbKOSLdpMfvmD7Y"
+                        },
+                        {
+                            "name": "Prefer",
+                            "value": "resolution=merge-duplicates"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "insert-new",
+            "name": "Insert New Conflict",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1700,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook POST /ingest-live": {
+            "main": [
+                [
+                    {
+                        "node": "Split Reports",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Reports": {
+            "main": [
+                [
+                    {
+                        "node": "AI Classifier",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Classifier": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Classifier JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Classifier JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Search Similar Events",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Search Similar Events": {
+            "main": [
+                [
+                    {
+                        "node": "The Judge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "The Judge": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Verdict",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Verdict": {
+            "main": [
+                [
+                    {
+                        "node": "Is Duplicate?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Duplicate?": {
+            "main": [
+                [
+                    {
+                        "node": "Update Existing (Judge)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Insert New Conflict",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

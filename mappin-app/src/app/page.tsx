@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { useRef } from 'react'
 import NewsTicker from '@/components/NewsTicker'
 import NotificationCenter from '@/components/NotificationCenter'
+import JudgeCenter from '@/components/JudgeCenter'
 import packageJson from '../../package.json'
 
 import AIAnalysisPanel from '@/components/AIAnalysisPanel'
@@ -415,12 +416,11 @@ export default function Home() {
             <div>
               <div className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Situation Report</div>
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                {/* Logic to find location name frequency */}
                 {clusterConflicts[0]?.location_name || 'Multiple Locations'}
               </h3>
               <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                Live Intel • {clusterConflicts.length} Reports
+                <span className={`w-2 h-2 rounded-full bg-green-500`}></span>
+                Live Monitoring Active • {clusterConflicts.length} Reports
               </p>
             </div>
             <button
@@ -515,17 +515,28 @@ export default function Home() {
         </div>
       )}
 
-      {/* Custom Notification Center (Top Middle) */}
-      <NotificationCenter
-        notifications={notifications}
-        onLocate={(item) => {
-          setCurrentDate(new Date(item.published_at))
-        }}
-        onDismiss={(id) => {
-          setNotifications(prev => prev.filter(n => n.id !== id))
-        }}
-        onClearAll={() => setNotifications([])}
-      />
+      {/* Custom Notification Center + Judge Center (Top Middle) */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[3000] flex items-center gap-3">
+        <NotificationCenter
+          notifications={notifications}
+          onLocate={(item) => {
+            setCurrentDate(new Date(item.published_at))
+          }}
+          onDismiss={(id) => {
+            setNotifications(prev => prev.filter(n => n.id !== id))
+          }}
+          onClearAll={() => setNotifications([])}
+        />
+        <JudgeCenter
+          conflicts={allConflicts}
+          onLocate={(conflict) => {
+            setCurrentDate(new Date(conflict.published_at))
+            // Open cluster sidebar with this conflict
+            setClusterConflicts([conflict])
+            setShowClusterSidebar(true)
+          }}
+        />
+      </div>
 
       {/* News Ticker */}
       <NewsTicker conflicts={filteredConflicts} />
