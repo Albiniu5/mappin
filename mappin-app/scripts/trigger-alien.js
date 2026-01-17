@@ -4,12 +4,12 @@ fetch('http://localhost:3000/api/ingest-alien')
     .then(res => res.json())
     .then(data => {
         console.log('✅ Ingestion result:', data);
-        if (data.success && data.processed > 0) {
-            console.log(`👽 Successfully ingested ${data.processed} alien reports successfully!`);
+        if (data.success) {
+            console.log(`👽 Successfully ingested ${data.processed} alien reports! (Errors: ${data.errors})`);
         } else {
-            console.log('ℹ️ No new reports processed (duplicates or rate limits).');
+            console.log('ℹ️ No new reports processed.');
         }
     })
     .catch(err => {
-        console.error('❌ Error triggering ingestion:', err);
+        console.error('❌ Error triggering ingestion (Check if server is running):', err);
     });

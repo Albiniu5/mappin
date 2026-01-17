@@ -17,7 +17,42 @@ const ALIEN_FEEDS = [
     'https://ufosightingshotspot.blogspot.com/feeds/posts/default',
     'https://theblackvault.com/casefiles/feed/',
     'https://anomalien.com/feed',
-    'https://www.phantomsandmonsters.com/feeds/posts/default'
+    'https://www.phantomsandmonsters.com/feeds/posts/default',
+    'https://alienufoblog.com/feed/',
+    'https://feeds.feedburner.com/StrangeUfoVideos',
+    'https://areazone51ufos.blogspot.com/feeds/posts/default?alt=rss',
+    'https://feeds.feedburner.com/BadUfosSkepticismUfosAndTheUniverse-ByRobertSheaffer',
+    'https://feeds.feedburner.com/DidItReallyHappen',
+    'https://www.earthfiles.com/feed/',
+    'https://hiddenexperience.blogspot.com/feeds/posts/default?alt=rss',
+    'https://ufoarchives.blogspot.com/feeds/posts/default?alt=rss',
+    'https://www.isawonetoo.net/feeds/posts/default?alt=rss',
+    'https://jamesclarksonufo.com/feed',
+    'https://johnfosterufos.com/feed/',
+    'https://www.latest-ufo-sightings.net/feed/atom',
+    'https://ufosightingz.blogspot.com/feeds/posts/default?alt=rss',
+    'https://www.openminds.tv/feed',
+    'https://spectralvision.wordpress.com/feed/',
+    'https://bufognavigation.blogspot.com/feeds/posts/default?alt=rss',
+    'https://feeds.feedburner.com/TheDebrisField',
+    'https://ufotrail.blogspot.com/feeds/posts/default?alt=rss',
+    'https://theozfiles.blogspot.com/feeds/posts/default?alt=rss',
+    'https://tonytopping.wordpress.com/feed/',
+    'https://feeds.feedburner.com/Ufo-TheAwarenessOfHumanity',
+    'https://ufodisclosurecountdownclock.blogspot.com/feeds/posts/default',
+    'https://fotocat.blogspot.com/feeds/posts/default?alt=rss',
+    'https://myufophotos.com/feed/',
+    'https://uforq.asn.au/feed/',
+    'https://uforesearchcenterofpennsylvania.blogspot.com/feeds/posts/default?alt=rss',
+    'https://ufoprophet.blogspot.com/feeds/posts/default?alt=rss',
+    'https://uforum.blogspot.com/feeds/posts/default?alt=rss',
+    'https://ufos-and-aliens.tumblr.com/rss',
+    'https://realtvufos.blogspot.com/feeds/posts/default?alt=rss',
+    'https://ufos-disclosure.blogspot.com/feeds/posts/default?alt=rss',
+    'https://www.youtube.com/feeds/videos.xml?user=Lou20764',
+    'https://www.youtube.com/feeds/videos.xml?channel_id=UCz9xsGTkXcOgIdEmaxl5oNQ',
+    'https://www.youtube.com/feeds/videos.xml?user=UFORobertBingham',
+    'https://www.youtube.com/feeds/videos.xml?user=UFOTVstudios'
 ];
 
 export async function GET() {
@@ -27,11 +62,9 @@ export async function GET() {
     try {
         console.log('[Alien Ingest] Starting UFO intake...');
 
-
-        console.log('[Alien Ingest] Starting UFO intake...');
-
-        // Process ALL feeds now that we want to populate data
-        const selectedFeeds = ALIEN_FEEDS;
+        // Randomly pick 5 feeds to process per run to avoid timeouts/rate limits
+        const shuffled = [...ALIEN_FEEDS].sort(() => 0.5 - Math.random());
+        const selectedFeeds = shuffled.slice(0, 5);
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -40,7 +73,7 @@ export async function GET() {
                 console.log(`[Alien Ingest] Fetching ${url}...`);
                 const items = await fetchRSS(url);
 
-                // Process top 5 items (was 2)
+                // Process top 5 items from each
                 const recentItems = items.slice(0, 5);
 
                 for (const item of recentItems) {
@@ -68,7 +101,13 @@ export async function GET() {
                     Link: ${item.link}
                     Date: ${item.pubDate}
 
-                    RETURN NULL if this is clearly just a movie review, general news, or irrelevant.
+                    RETURN NULL if this is:
+                    - General space news (NASA/SpaceX launches, black holes, astronomy discoveries)
+                    - Movie/TV reviews or entertainment news
+                    - General science articles not related to anomalous phenomena
+                    - Clearly explained conventional events (e.g. Starlink launches)
+
+                    ONLY return JSON if the content describes a specific UFO/UAP sighting, abduction, crop circle, cattle mutilation, or unexplained aerial/paranormal anomaly.
 
                     Otherwise, return valid JSON with this schema:
                     {

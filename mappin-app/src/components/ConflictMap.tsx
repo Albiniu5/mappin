@@ -156,6 +156,39 @@ const createAlienIcon = (type: string = 'Unknown', size: number = 30) => {
     });
 };
 
+// Alien Cluster Icon
+const createAlienClusterIcon = (count: number) => {
+    const size = 40 + Math.min(Math.log10(count) * 15, 30);
+    return new L.DivIcon({
+        html: `
+            <div style="position: relative; width: ${size}px; height: ${size}px;" class="group hover:scale-110 transition-transform duration-300">
+                <!-- Alien Glow -->
+                <div style="position: absolute; inset: 0; border-radius: 50%; filter: blur(8px); background: #22c55e; opacity: 0.6; animation: pulse 2s infinite;"></div>
+                
+                <!-- Core -->
+                <div style="
+                    position: absolute; 
+                    inset: 0; 
+                    border: 2px solid #22c55e; 
+                    border-radius: 50%; 
+                    background: rgba(0,0,0,0.9); 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+                ">
+                    <span style="color: #22c55e; font-family: monospace; font-weight: bold; font-size: ${size * 0.4}px; text-shadow: 0 0 5px #22c55e;">
+                        ${count}
+                    </span>
+                </div>
+            </div>
+        `,
+        className: 'bg-transparent',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+    });
+};
+
 
 const CATEGORY_COLORS: Record<string, string> = {
     'Armed Conflict': '#ef4444',
@@ -442,6 +475,13 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark',
                 maxClusterRadius={60}
                 iconCreateFunction={(cluster: any) => {
                     const markers = cluster.getAllChildMarkers();
+
+                    // ALIEN MODE CLUSTER
+                    if (isAlienMode) {
+                        return createAlienClusterIcon(markers.length);
+                    }
+
+                    // STANDARD CLUSTER
                     const stats: Record<string, number> = { 'Armed Conflict': 0, 'Protest': 0, 'Political Unrest': 0, 'Other': 0 };
                     markers.forEach((m: any) => {
                         const cat = m.options.conflictData?.category;
@@ -513,32 +553,35 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark',
                         }}
                     >
                         <Popup className="custom-popup" minWidth={300}>
-                            <div className="p-1">
+                            <div className={isAlienMode ? "p-1 font-mono" : "p-1"}>
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm`} style={{ backgroundColor: CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'] }}>
+                                    <span
+                                        className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isAlienMode ? 'text-black border border-green-400' : 'text-white'}`}
+                                        style={{ backgroundColor: isAlienMode ? '#22c55e' : (CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other']) }}
+                                    >
                                         {c.category}
                                     </span>
-                                    <span className="text-xs text-slate-400 font-medium">
+                                    <span className={isAlienMode ? "text-xs text-green-600 font-bold uppercase tracking-widest" : "text-xs text-slate-400 font-medium"}>
                                         {new Date(c.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </span>
                                 </div>
-                                <h3 className="text-sm font-bold text-slate-900 mb-2 leading-snug">
+                                <h3 className={isAlienMode ? "text-sm font-bold text-green-400 mb-2 leading-snug uppercase tracking-wider" : "text-sm font-bold text-slate-900 mb-2 leading-snug"}>
                                     {c.title}
                                 </h3>
                                 {c.description && (
-                                    <p className="text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed">
+                                    <p className={isAlienMode ? "text-xs text-green-700 mb-3 line-clamp-3 leading-relaxed border-l-2 border-green-900/50 pl-2" : "text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed"}>
                                         {c.description}
                                     </p>
                                 )}
-                                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                <div className={isAlienMode ? "flex justify-between items-center pt-2 border-t border-green-900/30" : "flex justify-between items-center pt-2 border-t border-slate-100"}>
                                     <a
                                         href={c.source_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                                        className={isAlienMode ? "text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider" : "text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"}
                                         onClick={(e) => e.stopPropagation()}
                                     >
-                                        Read Source <span className="text-[10px]">→</span>
+                                        {isAlienMode ? 'ACCESS DATA LOG' : 'Read Source'} <span className="text-[10px]">→</span>
                                     </a>
                                 </div>
                             </div>
@@ -553,6 +596,7 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark',
                 expandedCategories={expandedCategories}
                 onToggleCategory={toggleCategory}
                 onMarkerClick={handleMarkerClick}
+                isAlienMode={isAlienMode}
             />
 
         </MapContainer>
@@ -564,12 +608,14 @@ function ActiveClusterLayer({
     activeClusters,
     expandedCategories,
     onToggleCategory,
-    onMarkerClick
+    onMarkerClick,
+    isAlienMode = false
 }: {
     activeClusters: Record<string, { center: L.LatLng, conflicts: Conflict[] }>,
     expandedCategories: Set<string>,
     onToggleCategory: (id: string, position?: L.LatLng, map?: L.Map) => void,
-    onMarkerClick: (e: any, c: any) => void
+    onMarkerClick: (e: any, c: any) => void,
+    isAlienMode?: boolean
 }) {
     const map = useMap();
 
@@ -604,7 +650,12 @@ function ActiveClusterLayer({
                         <Polyline
                             key={`line-${catKey}`}
                             positions={[centerLatLng, catLatLng]}
-                            pathOptions={{ color: 'white', weight: 1, opacity: 0.5, dashArray: '4 4' }}
+                            pathOptions={{
+                                color: isAlienMode ? '#22c55e' : 'white',
+                                weight: 1,
+                                opacity: 0.5,
+                                dashArray: '4 4'
+                            }}
                         />
                     );
 
@@ -615,7 +666,10 @@ function ActiveClusterLayer({
                                 {connector}
                                 <Marker
                                     position={catLatLng}
-                                    icon={createCustomIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 35, catCount.toString())}
+                                    icon={isAlienMode
+                                        ? createAlienClusterIcon(catCount)
+                                        : createCustomIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 35, catCount.toString())
+                                    }
                                     eventHandlers={{
                                         click: (e) => {
                                             L.DomEvent.stopPropagation(e);
@@ -644,7 +698,11 @@ function ActiveClusterLayer({
                                     <Polyline
                                         key={`line-${c.id}`}
                                         positions={[catLatLng, evtLatLng]}
-                                        pathOptions={{ color: CATEGORY_COLORS[cat] || 'white', weight: 1, opacity: 0.8 }}
+                                        pathOptions={{
+                                            color: isAlienMode ? '#22c55e' : (CATEGORY_COLORS[cat] || 'white'),
+                                            weight: 1,
+                                            opacity: 0.8
+                                        }}
                                     />
                                 );
 
@@ -654,38 +712,44 @@ function ActiveClusterLayer({
                                         {evtConnector}
                                         <Marker
                                             position={evtLatLng}
-                                            icon={createRingIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 20, hasJudge)}
+                                            icon={isAlienMode
+                                                ? createAlienIcon((c.related_reports as any)?.alien_specific_type || 'Unknown')
+                                                : createRingIcon(CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'], 20, hasJudge)
+                                            }
                                             eventHandlers={{
                                                 click: (e) => onMarkerClick(e, c)
                                             }}
                                         >
                                             <Popup className="custom-popup" minWidth={300}>
-                                                <div className="p-1">
+                                                <div className={isAlienMode ? "p-1 font-mono" : "p-1"}>
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm`} style={{ backgroundColor: CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'] }}>
+                                                        <span
+                                                            className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isAlienMode ? 'text-black border border-green-400' : 'text-white'}`}
+                                                            style={{ backgroundColor: isAlienMode ? '#22c55e' : (CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other']) }}
+                                                        >
                                                             {c.category}
                                                         </span>
-                                                        <span className="text-xs text-slate-400 font-medium">
+                                                        <span className={isAlienMode ? "text-xs text-green-600 font-bold uppercase tracking-widest" : "text-xs text-slate-400 font-medium"}>
                                                             {new Date(c.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                         </span>
                                                     </div>
-                                                    <h3 className="text-sm font-bold text-slate-900 mb-2 leading-snug">
+                                                    <h3 className={isAlienMode ? "text-sm font-bold text-green-400 mb-2 leading-snug uppercase tracking-wider" : "text-sm font-bold text-slate-900 mb-2 leading-snug"}>
                                                         {c.title}
                                                     </h3>
                                                     {c.description && (
-                                                        <p className="text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed">
+                                                        <p className={isAlienMode ? "text-xs text-green-700 mb-3 line-clamp-3 leading-relaxed border-l-2 border-green-900/50 pl-2" : "text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed"}>
                                                             {c.description}
                                                         </p>
                                                     )}
-                                                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                    <div className={isAlienMode ? "flex justify-between items-center pt-2 border-t border-green-900/30" : "flex justify-between items-center pt-2 border-t border-slate-100"}>
                                                         <a
                                                             href={c.source_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                                                            className={isAlienMode ? "text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider" : "text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"}
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
-                                                            Read Source <span className="text-[10px]">→</span>
+                                                            {isAlienMode ? 'ACCESS DATA LOG' : 'Read Source'} <span className="text-[10px]">→</span>
                                                         </a>
                                                     </div>
                                                 </div>

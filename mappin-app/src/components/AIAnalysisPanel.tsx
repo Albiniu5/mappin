@@ -107,7 +107,10 @@ export default function AIAnalysisPanel({ conflict, isAlienMode = false }: AIAna
     // --- ALIEN MODE RENDERING ---
     if (alienData) {
         return (
-            <div className="bg-slate-900/50 border-t border-green-900/50 animate-in slide-in-from-bottom duration-500 font-mono">
+            <div
+                className="bg-slate-900/50 border-t border-green-900/50 animate-in slide-in-from-bottom duration-500 font-mono"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Alien Header */}
                 <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 px-5 py-3 border-b border-green-800/30 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -248,7 +251,10 @@ export default function AIAnalysisPanel({ conflict, isAlienMode = false }: AIAna
     if (!analysis) return null;
 
     return (
-        <div className="bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-500">
+        <div
+            className="bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-500"
+            onClick={(e) => e.stopPropagation()}
+        >
             {/* AI Banner */}
             <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/20 dark:to-indigo-900/20 px-5 py-3 border-b border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">

@@ -13,7 +13,7 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 import { toast } from 'sonner'
 import { useRef } from 'react'
 import NewsTicker from '@/components/NewsTicker'
-// import NotificationCenter from '@/components/NotificationCenter'
+import NotificationCenter from '@/components/NotificationCenter'
 import JudgeCenter from '@/components/JudgeCenter'
 import packageJson from '../../package.json'
 
@@ -112,6 +112,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [])
 
+
+
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isPlaying) {
@@ -189,6 +191,43 @@ export default function Home() {
     })
   }, [allConflicts, currentDate, searchTerm, selectedCategory, isAlienMode, alienSubFilter])
 
+  // --- Notification Logic ---
+  const [dismissedIds, setDismissedIds] = useState<Set<any>>(new Set())
+
+  const activeNotifications = useMemo(() => {
+    return filteredConflicts.filter(c => !dismissedIds.has(c.id)).slice(0, 50)
+  }, [filteredConflicts, dismissedIds])
+
+  const handleLocateNotification = (conflict: Conflict) => {
+    if (conflict.latitude && conflict.longitude) {
+      // Dispatch event to fly to location
+      window.dispatchEvent(new CustomEvent('map-reset-view', {
+        detail: {
+          lat: conflict.latitude,
+          lng: conflict.longitude,
+          zoom: 12
+        }
+      }));
+      setSelectedArticleId(conflict.id);
+    }
+  }
+
+  const handleDismissNotification = (id: any) => {
+    setDismissedIds(prev => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }
+
+  const handleClearNotifications = () => {
+    setDismissedIds(prev => {
+      const next = new Set(prev)
+      activeNotifications.forEach(c => next.add(c.id))
+      return next
+    })
+  }
+
   const statsConflicts = useMemo(() => {
     const isToday = currentDate
       ? currentDate.toDateString() === new Date().toDateString()
@@ -197,23 +236,31 @@ export default function Home() {
     if (isToday) {
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const recent = allConflicts.filter(c => new Date(c.published_at) > oneDayAgo);
-      return recent;
+      return allConflicts.filter(c => {
+        const matchesMode = isAlienMode ? c.category === 'Alien' : c.category !== 'Alien';
+        return matchesMode && new Date(c.published_at) > oneDayAgo;
+      });
     }
     return filteredConflicts;
-  }, [allConflicts, currentDate, filteredConflicts]);
+  }, [allConflicts, currentDate, filteredConflicts, isAlienMode]);
 
   const todayConflicts = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    return allConflicts.filter(c => new Date(c.published_at) >= startOfToday);
-  }, [allConflicts]);
+    return allConflicts.filter(c => {
+      const matchesMode = isAlienMode ? c.category === 'Alien' : c.category !== 'Alien';
+      return matchesMode && new Date(c.published_at) >= startOfToday;
+    });
+  }, [allConflicts, isAlienMode]);
 
   const addedLastHour = useMemo(() => {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    return allConflicts.filter(c => new Date(c.created_at) > oneHourAgo).length;
-  }, [allConflicts]);
+    return allConflicts.filter(c => {
+      const matchesMode = isAlienMode ? c.category === 'Alien' : c.category !== 'Alien';
+      return matchesMode && new Date(c.created_at) > oneHourAgo;
+    }).length;
+  }, [allConflicts, isAlienMode]);
 
   const timelineMaxDate = useMemo(() => {
     try {
@@ -305,7 +352,7 @@ export default function Home() {
                 <div className={isAlienMode ? "w-px h-6 bg-green-900" : "w-px h-6 bg-slate-200 dark:bg-slate-700"}></div>
 
                 <div className="flex flex-col text-right">
-                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>Total</div>
+                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>Today</div>
                   <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-emerald-500 dark:text-emerald-400 leading-none tracking-tight"}>{todayConflicts.length}</div>
                 </div>
               </div>
@@ -321,33 +368,49 @@ export default function Home() {
                 </div>
               )}
             </div>
+            <div className="flex gap-2 pointer-events-auto items-center">
+              {!isAlienMode && <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />}
+              <button
+                onClick={() => setShowAbout(true)}
+                className={isAlienMode
+                  ? "bg-black/80 border border-green-600 text-green-500 hover:text-green-300 hover:border-green-400 px-4 py-2 rounded-none text-sm transition-all shadow-lg font-mono tracking-widest uppercase"
+                  : "bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium"}
+              >
+                {isAlienMode ? 'CLASSIFIED' : 'About'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsAlienMode(!isAlienMode);
+                  setSelectedCategory('All');
+                  setAlienSubFilter('All');
+                }}
+                className={`w-10 h-10 flex items-center justify-center transition-all duration-500 shadow-lg border ${isAlienMode
+                  ? 'bg-green-900 border-green-400 text-green-400 shadow-[0_0_20px_#22c55e] scale-110 rounded-sm'
+                  : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-green-500 hover:border-green-500 rounded-full'
+                  }`}
+                title={isAlienMode ? "Deactivate Alien Lens" : "Activate Alien Lens"}
+              >
+                {isAlienMode ? '👽' : '🛰️'}
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="flex gap-2 pointer-events-auto items-center">
-            {!isAlienMode && <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />}
-            <button
-              onClick={() => setShowAbout(true)}
-              className={isAlienMode
-                ? "bg-black/80 border border-green-600 text-green-500 hover:text-green-300 hover:border-green-400 px-4 py-2 rounded-none text-sm transition-all shadow-lg font-mono tracking-widest uppercase"
-                : "bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium"}
-            >
-              {isAlienMode ? 'CLASSIFIED' : 'About'}
-            </button>
-            <button
-              onClick={() => {
-                setIsAlienMode(!isAlienMode);
-                setSelectedCategory('All');
-                setAlienSubFilter('All');
-              }}
-              className={`w-10 h-10 flex items-center justify-center transition-all duration-500 shadow-lg border ${isAlienMode
-                ? 'bg-green-900 border-green-400 text-green-400 shadow-[0_0_20px_#22c55e] scale-110 rounded-sm'
-                : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-green-500 hover:border-green-500 rounded-full'
-                }`}
-              title={isAlienMode ? "Deactivate Alien Lens" : "Activate Alien Lens"}
-            >
-              {isAlienMode ? '👽' : '🛰️'}
-            </button>
-          </div>
+      {/* Bottom Right Validation Tools */}
+      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-4 pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-2">
+          <JudgeCenter
+            conflicts={allConflicts}
+            onLocate={handleLocateNotification}
+          />
+          <NotificationCenter
+            notifications={activeNotifications}
+            onLocate={handleLocateNotification}
+            onDismiss={handleDismissNotification}
+            onClearAll={handleClearNotifications}
+            isAlienMode={isAlienMode}
+          />
         </div>
       </div>
 
@@ -383,7 +446,18 @@ export default function Home() {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`text-[11px] px-2.5 py-1 rounded-md border transition-all font-medium ${selectedCategory === cat ? 'bg-blue-600 border-blue-500 text-white' : 'bg-blue-900/20 text-blue-500 border-blue-800'}`}
+                    className={`text-[11px] px-2.5 py-1 rounded-md border transition-all font-medium ${selectedCategory === cat
+                      ? (cat === 'Armed Conflict' ? 'bg-red-600 border-red-500 text-white shadow-md shadow-red-900/20' :
+                        cat === 'Protest' ? 'bg-amber-600 border-amber-500 text-white shadow-md shadow-amber-900/20' :
+                          cat === 'Political Unrest' ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-900/20' :
+                            cat === 'Other' ? 'bg-slate-600 border-slate-500 text-white' :
+                              'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/20')
+                      : (cat === 'Armed Conflict' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30 hover:bg-red-500/20' :
+                        cat === 'Protest' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/30 hover:bg-amber-500/20' :
+                          cat === 'Political Unrest' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-500/20' :
+                            cat === 'Other' ? 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-500/20' :
+                              'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30 hover:bg-blue-500/20')
+                      }`}
                   >
                     {cat}
                   </button>
@@ -435,87 +509,93 @@ export default function Home() {
       </div>
 
       {/* Timeline Controls (Hidden in Alien Mode for now? Or styled?) */}
-      {currentDate && !isAlienMode && (
-        <Timeline
-          date={currentDate}
-          setDate={(d) => setCurrentDate(d)}
-          minDate={dateRange.min}
-          maxDate={timelineMaxDate}
-          isPlaying={isPlaying}
-          onPlayToggle={() => setIsPlaying(!isPlaying)}
-          playbackSpeed={playbackSpeed}
-          setPlaybackSpeed={setPlaybackSpeed}
-        />
-      )}
+      {/* Timeline Controls */}
+      {
+        currentDate && (
+          <Timeline
+            date={currentDate}
+            setDate={(d) => setCurrentDate(d)}
+            minDate={dateRange.min}
+            maxDate={timelineMaxDate}
+            isPlaying={isPlaying}
+            onPlayToggle={() => setIsPlaying(!isPlaying)}
+            playbackSpeed={playbackSpeed}
+            setPlaybackSpeed={setPlaybackSpeed}
+            isAlienMode={isAlienMode}
+          />
+        )
+      }
 
       {/* Cluster Sidebar */}
-      {showClusterSidebar && (
-        <div
-          className={`absolute right-0 top-0 h-full z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-colors ease-out ${isAlienMode
-            ? 'bg-black/95 backdrop-blur-xl border-l border-green-500/50'
-            : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200 dark:border-slate-700'
-            }`}
-          style={{ width: sidebarExpanded ? '700px' : '400px' }}
-        >
-          {/* Sidebar Header */}
-          <div className={`p-5 border-b flex justify-between items-start transition-colors ${isAlienMode
-            ? 'bg-black border-green-900'
-            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
-            }`}>
-            <div>
-              <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isAlienMode ? 'text-green-600' : 'text-blue-600 dark:text-blue-400'}`}>
-                {isAlienMode ? 'CONTACT REPORT' : 'Situation Report'}
+      {
+        showClusterSidebar && (
+          <div
+            className={`absolute right-0 top-0 h-full z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-colors ease-out ${isAlienMode
+              ? 'bg-black/95 backdrop-blur-xl border-l border-green-500/50'
+              : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200 dark:border-slate-700'
+              }`}
+            style={{ width: sidebarExpanded ? '700px' : '400px' }}
+          >
+            {/* Sidebar Header */}
+            <div className={`p-5 border-b flex justify-between items-start transition-colors ${isAlienMode
+              ? 'bg-black border-green-900'
+              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+              }`}>
+              <div>
+                <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${isAlienMode ? 'text-green-600' : 'text-blue-600 dark:text-blue-400'}`}>
+                  {isAlienMode ? 'CONTACT REPORT' : 'Situation Report'}
+                </div>
+                <h3 className={`text-xl font-bold flex items-center gap-2 ${isAlienMode ? 'text-green-400 font-mono tracking-tighter' : 'text-slate-900 dark:text-white'}`}>
+                  {clusterConflicts[0]?.location_name || 'Multiple Locations'}
+                </h3>
               </div>
-              <h3 className={`text-xl font-bold flex items-center gap-2 ${isAlienMode ? 'text-green-400 font-mono tracking-tighter' : 'text-slate-900 dark:text-white'}`}>
-                {clusterConflicts[0]?.location_name || 'Multiple Locations'}
-              </h3>
-            </div>
-            <button
-              onClick={() => setShowClusterSidebar(false)}
-              className={`w-8 h-8 flex items-center justify-center border transition-colors ${isAlienMode
-                ? 'rounded-none bg-black border-green-800 text-green-600 hover:text-green-400 hover:border-green-400'
-                : 'rounded-full bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'
-                }`}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-            {clusterConflicts.slice(0, 50).map((conflict, i) => (
-              <div
-                key={conflict.id}
-                className={`relative pl-6 pb-2 border-l transition-colors group ${isAlienMode ? 'border-green-900' : 'border-slate-200 dark:border-slate-800'}`}
+              <button
+                onClick={() => setShowClusterSidebar(false)}
+                className={`w-8 h-8 flex items-center justify-center border transition-colors ${isAlienMode
+                  ? 'rounded-none bg-black border-green-800 text-green-600 hover:text-green-400 hover:border-green-400'
+                  : 'rounded-full bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'
+                  }`}
               >
-                {/* Dot */}
-                <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 ${isAlienMode
-                  ? 'border-black bg-green-500 animate-pulse'
-                  : 'border-slate-50 dark:border-slate-900 bg-blue-500'
-                  }`}></div>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+              {clusterConflicts.slice(0, 50).map((conflict, i) => (
                 <div
-                  className={`border rounded-lg transition-all cursor-pointer overflow-hidden ${isAlienMode
-                    ? 'bg-green-900/10 border-green-900/50 hover:bg-green-900/20 hover:border-green-500/50'
-                    : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50 hover:border-blue-500/50'
-                    }`}
-                  onClick={() => setSelectedArticleId(selectedArticleId === conflict.id ? null : conflict.id)}
+                  key={conflict.id}
+                  className={`relative pl-6 pb-2 border-l transition-colors group ${isAlienMode ? 'border-green-900' : 'border-slate-200 dark:border-slate-800'}`}
                 >
-                  <div className="p-3">
-                    <h4 className={`text-sm font-medium transition-colors leading-snug mb-1 ${isAlienMode ? 'text-green-400 font-mono' : 'text-slate-800 dark:text-slate-200'}`}>
-                      {conflict.title}
-                    </h4>
-                    {/* AI Panel Expansion */}
-                    {selectedArticleId === conflict.id && (
-                      <AIAnalysisPanel conflict={conflict} isAlienMode={isAlienMode} />
-                    )}
+                  {/* Dot */}
+                  <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 ${isAlienMode
+                    ? 'border-black bg-green-500 animate-pulse'
+                    : 'border-slate-50 dark:border-slate-900 bg-blue-500'
+                    }`}></div>
+
+                  <div
+                    className={`border rounded-lg transition-all cursor-pointer overflow-hidden ${isAlienMode
+                      ? 'bg-green-900/10 border-green-900/50 hover:bg-green-900/20 hover:border-green-500/50'
+                      : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50 hover:border-blue-500/50'
+                      }`}
+                    onClick={() => setSelectedArticleId(selectedArticleId === conflict.id ? null : conflict.id)}
+                  >
+                    <div className="p-3">
+                      <h4 className={`text-sm font-medium transition-colors leading-snug mb-1 ${isAlienMode ? 'text-green-400 font-mono' : 'text-slate-800 dark:text-slate-200'}`}>
+                        {conflict.title}
+                      </h4>
+                      {/* AI Panel Expansion */}
+                      {selectedArticleId === conflict.id && (
+                        <AIAnalysisPanel conflict={conflict} isAlienMode={isAlienMode} />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Notifications and Ticker */}
       {/* Notifications and Ticker */}
@@ -525,7 +605,7 @@ export default function Home() {
       <NewsTicker conflicts={filteredConflicts} isAlienMode={isAlienMode} />
 
       {/* About Modal */}
-      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} isAlienMode={isAlienMode} />
 
     </main >
   )

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronRight, Globe, Shield, Activity, Users, Database, Eye, Share2, Layers } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Globe, Shield, Activity, Users, Database, Eye, Share2, Layers, Radio, Brain, AlertTriangle, FileText } from 'lucide-react';
 
 interface AboutModalProps {
     isOpen: boolean;
     onClose: () => void;
+    isAlienMode?: boolean;
 }
 
-export function AboutModal({ isOpen, onClose }: AboutModalProps) {
+export function AboutModal({ isOpen, onClose, isAlienMode = false }: AboutModalProps) {
     const [activeSection, setActiveSection] = useState<string | null>('mission');
 
     if (!isOpen) return null;
 
-    const sections = [
+    // --- STANDARD SECTIONS ---
+    const standardSections = [
         {
             id: 'mission',
             title: 'Mission & Purpose',
@@ -208,17 +210,148 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         }
     ];
 
+    // --- ALIEN SECTIONS ---
+    const alienSections = [
+        {
+            id: 'mission',
+            title: 'Disclosure Protocol',
+            icon: <Radio className="w-4 h-4 text-green-400" />,
+            content: (
+                <div className="space-y-4 font-mono">
+                    <p className="text-green-300 leading-relaxed">
+                        Conventional news filters out anomalies. We do not.
+                        <strong> Mappin Alien Lens</strong> aggregates global reports of UAP sightings, abductions, and unexplained phenomena that mainstream media ignores.
+                    </p>
+                    <div className="bg-black/80 p-4 rounded-none border border-green-800">
+                        <h4 className="font-bold text-green-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" /> The Truth Gap
+                        </h4>
+                        <ul className="list-disc pl-4 space-y-1 text-xs text-green-600">
+                            <li>Thousands of sightings are buried in local blogs and forums.</li>
+                            <li>Official channels deny or ridicule credible witness testimony.</li>
+                            <li>Pattern recognition is impossible without centralized data.</li>
+                        </ul>
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'metrics',
+            title: 'AI Credibility Scoring',
+            icon: <Brain className="w-4 h-4 text-green-400" />,
+            content: (
+                <div className="space-y-6 font-mono">
+                    <p className="text-sm text-green-300/80">
+                        Every report undergoes rigorous analysis by our <strong className="text-green-400">Gemini AI Investigator</strong>.
+                        We generate a 0-100% Credibility Score based on 4 key vectors:
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Witness */}
+                        <div className="bg-green-900/10 border border-green-800/50 p-3">
+                            <div className="text-[10px] text-green-500 uppercase font-bold mb-1">1. Witness Reliability</div>
+                            <div className="text-xs text-green-200">
+                                <span className="text-green-400">Civilian</span> vs <span className="text-green-400">Pilot/Police</span>.
+                                <br />Multi-witness events score higher.
+                            </div>
+                        </div>
+                        {/* Evidence */}
+                        <div className="bg-green-900/10 border border-green-800/50 p-3">
+                            <div className="text-[10px] text-green-500 uppercase font-bold mb-1">2. Hard Evidence</div>
+                            <div className="text-xs text-green-200">
+                                <span className="text-green-400">Visual Only</span> vs <span className="text-green-400">Radar/Video</span>.
+                                <br />Sensor confirmation boosts score significantly.
+                            </div>
+                        </div>
+                        {/* Source */}
+                        <div className="bg-green-900/10 border border-green-800/50 p-3">
+                            <div className="text-[10px] text-green-500 uppercase font-bold mb-1">3. Source Quality</div>
+                            <div className="text-xs text-green-200">
+                                Tabloid blogs score lower than reputable research organizations (MUFON, etc.) or declassified docs.
+                            </div>
+                        </div>
+                        {/* History */}
+                        <div className="bg-green-900/10 border border-green-800/50 p-3">
+                            <div className="text-[10px] text-green-500 uppercase font-bold mb-1">4. Historical Match</div>
+                            <div className="text-xs text-green-200">
+                                AI checks for similar vector/shape sightings within 50km in the last 10 years.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-black/60 p-3 border border-green-500/30 flex items-center justify-between">
+                        <span className="text-xs text-green-600 uppercase">Example Score</span>
+                        <div className="w-32 h-2 bg-green-900/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 w-[87%] shadow-[0_0_10px_#22c55e]"></div>
+                        </div>
+                        <span className="font-bold text-green-400 text-sm">87%</span>
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'hynek',
+            title: 'Classification (Hynek)',
+            icon: <FileText className="w-4 h-4 text-green-400" />,
+            content: (
+                <div className="space-y-4 font-mono text-sm text-green-300/90">
+                    <p>
+                        We utilize the standard <strong>Hynek Scale</strong> for event classification:
+                    </p>
+                    <ul className="space-y-2 border-l border-green-800 pl-4">
+                        <li><span className="text-green-400 font-bold">NL (Nocturnal Light):</span> Distant flight, irregular movement.</li>
+                        <li><span className="text-green-400 font-bold">DD (Daylight Disc):</span> Metallic object seen in day.</li>
+                        <li><span className="text-green-400 font-bold">CE-1 (Close Encounter 1):</span> Object near, but no interaction.</li>
+                        <li><span className="text-green-400 font-bold">CE-2 (Close Encounter 2):</span> Physical effect (burned ground, stalled car).</li>
+                        <li><span className="text-green-400 font-bold">CE-3 (Close Encounter 3):</span> Entities observed.</li>
+                        <li><span className="text-green-400 font-bold">CE-4 (Abduction):</span> Witness taken against will.</li>
+                    </ul>
+                </div>
+            )
+        },
+        {
+            id: 'legal-alien',
+            title: 'Disclaimer',
+            icon: <Shield className="w-4 h-4 text-green-400" />,
+            content: (
+                <div className="text-xs text-green-600/70 font-mono space-y-2">
+                    <p>WARNING: RESTRICTED ACCESS.</p>
+                    <p>
+                        The data presented in the Alien Lens acts as an aggregation of unverified public reports.
+                        Mappin does not claim proof of extraterrestrial life. We provide the tools; you decide the truth.
+                    </p>
+                </div>
+            )
+        }
+    ];
+
+    const sections = isAlienMode ? alienSections : standardSections;
+
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-950 w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl flex overflow-hidden border border-slate-200 dark:border-slate-800 flex-col md:flex-row">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+            <div
+                onClick={(e) => e.stopPropagation()}
+                className={`w-full max-w-4xl max-h-[85vh] flex overflow-hidden flex-col md:flex-row shadow-2xl transition-all duration-500 ${isAlienMode
+                    ? 'bg-black border border-green-500/50 shadow-[0_0_50px_rgba(34,197,94,0.2)] rounded-none'
+                    : 'bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800'
+                    }`}
+            >
 
                 {/* Sidebar Navigation */}
-                <div className="w-full md:w-64 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col overflow-y-auto max-h-[200px] md:max-h-full">
+                <div className={`w-full md:w-64 border-r p-4 flex flex-col overflow-y-auto max-h-[200px] md:max-h-full ${isAlienMode
+                    ? 'bg-black/90 border-green-900'
+                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800'
+                    }`}>
                     <div className="mb-6 px-2">
-                        <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                            Mappin
+                        <h2 className={`text-xl font-bold bg-clip-text text-transparent ${isAlienMode
+                            ? 'bg-green-500 font-mono tracking-widest uppercase drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                            }`}>
+                            {isAlienMode ? 'TERMINAL' : 'Mappin'}
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Global Conflict Tracker v1.0.27</p>
+                        <p className={`text-xs font-medium ${isAlienMode ? 'text-green-700 font-mono uppercase' : 'text-slate-500 dark:text-slate-400'}`}>
+                            {isAlienMode ? 'v1.0.27 [UNCLASSIFIED]' : 'Global Conflict Tracker v1.0.27'}
+                        </p>
                     </div>
 
                     <nav className="space-y-1">
@@ -226,44 +359,62 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                             <button
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === section.id
-                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${isAlienMode
+                                    ? activeSection === section.id
+                                        ? 'bg-green-900/30 text-green-400 border-l-2 border-green-500 font-mono font-bold uppercase'
+                                        : 'text-green-800 hover:text-green-500 font-mono uppercase'
+                                    : activeSection === section.id
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg font-medium'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg font-medium'
                                     }`}
                             >
                                 {section.icon}
                                 {section.title}
-                                {activeSection === section.id && <ChevronRight className="w-3 h-3 ml-auto opacity-50" />}
+                                {activeSection === section.id && <ChevronRight className={`w-3 h-3 ml-auto opacity-50 ${isAlienMode ? 'text-green-500' : ''}`} />}
                             </button>
                         ))}
                     </nav>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative">
+                <div className={`flex-1 flex flex-col min-w-0 relative ${isAlienMode ? 'bg-black bg-[url("https://www.transparenttextures.com/patterns/carbon-fibre.png")]' : 'bg-white dark:bg-slate-950'}`}>
+                    {/* Scanline for Alien Mode */}
+                    {isAlienMode && <div className="absolute inset-0 bg-green-900/5 pointer-events-none animate-scanline z-0"></div>}
+
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors z-10"
+                        className={`absolute top-4 right-4 p-2 transition-colors z-10 ${isAlienMode
+                            ? 'text-green-700 hover:text-green-400'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                            }`}
                     >
                         <X className="w-5 h-5" />
                     </button>
 
-                    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+                    <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 z-10 relative">
                         {sections.map((section) => (
                             <div key={section.id} id={section.id} className={activeSection === section.id ? 'block animate-in fade-in slide-in-from-bottom-2 duration-300' : 'hidden'}>
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                                    <div className={`p-2 rounded-lg ${isAlienMode
+                                        ? 'bg-green-900/20 text-green-500 border border-green-500/30'
+                                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                        }`}>
                                         {section.icon}
                                     </div>
-                                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{section.title}</h2>
+                                    <h2 className={`text-2xl font-bold ${isAlienMode
+                                        ? 'text-green-500 font-mono tracking-wider uppercase drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]'
+                                        : 'text-slate-800 dark:text-slate-100'
+                                        }`}>
+                                        {section.title}
+                                    </h2>
                                 </div>
                                 {section.content}
                             </div>
                         ))}
                     </div>
 
-                    <div className="p-4 border-t border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50 md:hidden flex justify-center">
-                        <button onClick={onClose} className="text-sm font-medium text-slate-600 dark:text-slate-400">Close</button>
+                    <div className={`p-4 md:hidden flex justify-center border-t ${isAlienMode ? 'border-green-900 bg-black' : 'border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50'}`}>
+                        <button onClick={onClose} className={`text-sm font-medium ${isAlienMode ? 'text-green-600' : 'text-slate-600 dark:text-slate-400'}`}>Close</button>
                     </div>
                 </div>
 

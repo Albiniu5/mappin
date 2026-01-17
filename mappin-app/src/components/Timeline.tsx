@@ -13,9 +13,10 @@ interface TimelineProps {
     onPlayToggle: () => void
     playbackSpeed?: number
     setPlaybackSpeed?: (speed: number) => void
+    isAlienMode?: boolean
 }
 
-export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, onPlayToggle, playbackSpeed = 1, setPlaybackSpeed }: TimelineProps) {
+export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, onPlayToggle, playbackSpeed = 1, setPlaybackSpeed, isAlienMode = false }: TimelineProps) {
     const [mounted, setMounted] = useState(false)
     const [showCalendar, setShowCalendar] = useState(false)
     const [internalDate, setInternalDate] = useState<Date>(date) // Local state for smooth dragging
@@ -117,14 +118,27 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         return null
     }
 
+    // --- ALIEN STYLES ---
+    const containerClass = isAlienMode
+        ? "absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/90 backdrop-blur-md p-4 rounded-none border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.3)] z-[1000] flex items-center gap-4 transition-colors font-mono"
+        : "absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-[1000] flex items-center gap-4 transition-colors";
+
+    const btnClass = isAlienMode
+        ? "p-2 rounded-none bg-black border border-green-800 text-green-600 hover:text-green-400 hover:border-green-500 transition-colors"
+        : "p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-600";
+
+    const playBtnClass = isAlienMode
+        ? `p-3 rounded-none ${isPlaying ? 'bg-green-600 text-black border border-green-400 shadow-[0_0_10px_#22c55e]' : 'bg-black text-green-500 border border-green-500 hover:bg-green-900/30'} transition-all`
+        : `p-3 rounded-full ${isPlaying ? 'bg-orange-600 hover:bg-orange-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'} text-white transition-all shadow-lg`;
+
     return (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-[1000] flex items-center gap-4 transition-colors">
+        <div className={containerClass}>
 
             {/* Controls Group */}
             <div className="flex items-center gap-2">
                 <button
                     onClick={handlePrevDay}
-                    className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-600"
+                    className={btnClass}
                     title="Previous Day"
                 >
                     <ChevronLeft size={16} />
@@ -132,7 +146,7 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
                 <button
                     onClick={onPlayToggle}
-                    className={`p-3 rounded-full ${isPlaying ? 'bg-orange-600 hover:bg-orange-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'} text-white transition-all shadow-lg`}
+                    className={playBtnClass}
                     title={isPlaying ? 'Pause' : 'Play'}
                 >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
@@ -140,7 +154,7 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
                 <button
                     onClick={handleNextDay}
-                    className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-600"
+                    className={btnClass}
                     title="Next Day"
                 >
                     <ChevronRight size={16} />
@@ -151,7 +165,9 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
             {setPlaybackSpeed && (
                 <button
                     onClick={handleSpeedChange}
-                    className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 text-xs font-mono font-bold transition-colors border border-slate-200 dark:border-slate-600 min-w-[50px]"
+                    className={isAlienMode
+                        ? "px-3 py-2 rounded-none bg-black text-green-600 border border-green-800 hover:border-green-500 text-xs font-mono font-bold transition-colors min-w-[50px]"
+                        : "px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 text-xs font-mono font-bold transition-colors border border-slate-200 dark:border-slate-600 min-w-[50px]"}
                     title="Change playback speed"
                 >
                     <FastForward size={14} className="inline mr-1" />
@@ -160,16 +176,16 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
             )}
 
             <div className="flex-1 flex flex-col gap-1">
-                <label className="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider flex justify-between items-center">
+                <label className={isAlienMode ? "text-xs text-green-500 font-mono uppercase tracking-widest flex justify-between items-center" : "text-xs text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider flex justify-between items-center"}>
                     <span>{internalDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                    {isPlaying && <span className="text-orange-400 animate-pulse">● Playing</span>}
+                    {isPlaying && <span className={isAlienMode ? "text-green-400 animate-pulse drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]" : "text-orange-400 animate-pulse"}>● {isAlienMode ? 'REPLAY ACTIVE' : 'Playing'}</span>}
                 </label>
 
                 {/* Progress bar background */}
                 <div className="relative w-full">
                     {/* Animated progress fill */}
                     <div
-                        className="absolute top-0 left-0 h-2 bg-gradient-to-r from-blue-500 to-orange-500 rounded-lg transition-all duration-300"
+                        className={isAlienMode ? "absolute top-0 left-0 h-2 bg-green-500 shadow-[0_0_10px_#22c55e] rounded-none transition-all duration-300" : "absolute top-0 left-0 h-2 bg-gradient-to-r from-blue-500 to-orange-500 rounded-lg transition-all duration-300"}
                         style={{ width: `${progress}%` }}
                     />
 
@@ -183,7 +199,9 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                         onMouseUp={commitDateChange}
                         onTouchEnd={commitDateChange}
                         step={24 * 60 * 60 * 1000} // 1 day steps
-                        className="relative w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg"
+                        className={isAlienMode
+                            ? "relative w-full h-2 bg-black border border-green-900 rounded-none appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:bg-green-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_#22c55e] [&::-webkit-slider-thumb]:cursor-pointer"
+                            : "relative w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"}
                         suppressHydrationWarning
                     />
                 </div>
@@ -199,22 +217,28 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                                 detail: { lat: 20, lng: 0, zoom: 3 }
                             }));
                         }}
-                        className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-600 transition-all duration-300 group relative"
+                        className={isAlienMode
+                            ? "p-2 rounded-none bg-black border border-green-800 text-green-600 hover:text-green-400 hover:border-green-400 transition-all duration-300 group relative"
+                            : "p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-blue-600 transition-all duration-300 group relative"}
                         title="Reset Map View & Jump to Today"
                     >
-                        <RotateCcw className="w-5 h-5 text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-white group-hover:rotate-180 transition-transform duration-500" />
+                        <RotateCcw className={isAlienMode ? "w-5 h-5 group-hover:-rotate-180 transition-transform duration-500" : "w-5 h-5 text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-white group-hover:rotate-180 transition-transform duration-500"} />
                     </button>
 
                     <div className="relative">
                         <button
                             onClick={() => setShowCalendar(!showCalendar)}
-                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-600 transition-all duration-300 group"
+                            className={isAlienMode
+                                ? "p-2 rounded-none bg-black border border-green-800 text-green-600 hover:text-green-400 hover:border-green-400 transition-all duration-300 group"
+                                : "p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-purple-100 dark:hover:bg-purple-600 transition-all duration-300 group"}
                             title="Pick Date"
                         >
-                            <Calendar className="w-5 h-5 text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-white" />
+                            <Calendar className={isAlienMode ? "w-5 h-5" : "w-5 h-5 text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-white"} />
                         </button>
                         {showCalendar && (
-                            <div className="absolute bottom-12 left-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-3 shadow-2xl z-50">
+                            <div className={isAlienMode
+                                ? "absolute bottom-12 left-0 bg-black border border-green-500 rounded-none p-3 shadow-[0_0_20px_rgba(34,197,94,0.3)] z-50 font-mono"
+                                : "absolute bottom-12 left-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg p-3 shadow-2xl z-50"}>
                                 <input
                                     type="date"
                                     value={internalDate.toISOString().split('T')[0]}
@@ -227,12 +251,16 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                                     }}
                                     min={range.start.toISOString().split('T')[0]}
                                     max={range.end.toISOString().split('T')[0]}
-                                    className="bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded border border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:outline-none"
+                                    className={isAlienMode
+                                        ? "bg-black text-green-500 px-3 py-2 rounded-none border border-green-700 focus:border-green-400 focus:outline-none"
+                                        : "bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded border border-slate-200 dark:border-slate-600 focus:border-blue-500 focus:outline-none"}
                                 />
                             </div>
                         )}
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-500 font-mono flex-1">
+                    <div className={isAlienMode
+                        ? "flex justify-between text-[10px] text-green-800 font-mono flex-1 uppercase tracking-widest"
+                        : "flex justify-between text-[10px] text-slate-500 font-mono flex-1"}>
                         <span suppressHydrationWarning>{range.start.toLocaleDateString('en-US')}</span>
                         <span suppressHydrationWarning>{range.end.toLocaleDateString('en-US')}</span>
                     </div>
