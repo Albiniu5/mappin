@@ -11,16 +11,17 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 interface MapWrapperProps {
     conflicts: Conflict[]
     onClusterClick?: (conflicts: Conflict[]) => void
+    theme?: 'dark' | 'light'
 }
 
-export default function MapWrapper({ conflicts, onClusterClick }: MapWrapperProps) {
+export default function MapWrapper({ conflicts, onClusterClick, theme }: MapWrapperProps) {
     const Map = useMemo(() => dynamic(
         () => import('@/components/ConflictMap'),
         {
-            loading: () => <div className="h-full w-full bg-slate-900 animate-pulse" />,
+            loading: () => <div className="h-full w-full bg-slate-50 dark:bg-slate-900 animate-pulse" />,
             ssr: false
         }
     ), [])
 
-    return <Map conflicts={conflicts} onClusterClick={onClusterClick} />
+    return <Map conflicts={conflicts} onClusterClick={onClusterClick} theme={theme} />
 }

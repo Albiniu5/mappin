@@ -20,6 +20,7 @@ import packageJson from '../../package.json'
 
 import AIAnalysisPanel from '@/components/AIAnalysisPanel'
 import { ExternalLink } from 'lucide-react'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
@@ -35,6 +36,16 @@ export default function Home() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+
+  // EFFECT: Sync theme to document class
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   // Track seen IDs to detect new items for notifications
   // Using <any> to be safe against ID type (number vs string) mismatches
@@ -53,11 +64,11 @@ export default function Home() {
       .order('published_at', { ascending: false })
 
     if (data) {
-      console.log("Supabase Data:", data);
       // Filter out ANY test alerts (case insensitive)
       const conflicts = (data as Conflict[]).filter(c => !c.title.toUpperCase().includes("TEST"));
 
-      // NOTIFICATION LOGIC
+      /* 
+      // NOTIFICATION LOGIC DISABLED PER USER REQUEST
       // 1. Identify which IDs are new (not in our seen set)
       const newItems = conflicts.filter(c => !seenIdsRef.current.has(c.id));
 
@@ -92,6 +103,7 @@ export default function Home() {
           return unique.slice(0, 5);
         });
       }
+      */
 
       // 3. Update seen IDs
       conflicts.forEach(c => seenIdsRef.current.add(c.id));
@@ -128,30 +140,46 @@ export default function Home() {
     fetchConflicts()
   }, [])
 
-  // Auto-refresh RSS feeds in background on page load
+  // Auto-refresh RSS feeds in background on page load (Throttled)
   useEffect(() => {
     const triggerFeedRefresh = async () => {
+      // 1. Check Session Storage to prevent multiple tabs/reloads from hammering the API
+      const lastRefresh = sessionStorage.getItem('last_feed_refresh');
+      const now = Date.now();
+      const COOLDOWN = 5 * 60 * 1000; // 5 Minutes
+
+      if (lastRefresh && (now - parseInt(lastRefresh)) < COOLDOWN) {
+        console.log('Skipping RSS refresh (Cooldown active)');
+        return;
+      }
+
       try {
-        console.log('Triggering RSS feed refresh...')
+        console.log('Triggering RSS feed refresh (Batch)...')
         const response = await fetch('/api/ingest')
         const result = await response.json()
         console.log('Feed refresh result:', result)
 
-        // If new items were processed, re-fetch conflicts
-        if (result.success && (result.processed > 0 || result.inserted > 0)) {
-          console.log("New items found, refreshing map...");
-          fetchConflicts();
+        if (result.success) {
+          // Update timestamp
+          sessionStorage.setItem('last_feed_refresh', Date.now().toString());
+
+          // If new items were processed, re-fetch conflicts
+          if (result.processed > 0 || result.inserted > 0) {
+            console.log("New items found, refreshing map...");
+            fetchConflicts();
+          }
         }
       } catch (error) {
         console.error('Error refreshing feed:', error)
       }
     }
 
-    // Initial call
+    // Initial call (will be blocked by check if recently done)
     triggerFeedRefresh()
 
-    // Poll every 30 minutes (30 * 60 * 1000)
-    const interval = setInterval(triggerFeedRefresh, 30 * 60 * 1000);
+    // Poll every 5 minutes (5 * 60 * 1000)
+    // Small offset to ensure cooldown passes
+    const interval = setInterval(triggerFeedRefresh, 5 * 60 * 1000 + 1000);
 
     return () => clearInterval(interval);
   }, [])
@@ -192,10 +220,17 @@ export default function Home() {
 
   // Filter conflicts based on selected date, search text, and category
   const filteredConflicts = useMemo(() => {
-    // Pre-calculate filter values to avoid re-calculating inside the loop
+    // Pre-calculate filter values to avoid re-calculating
     const now = new Date();
+    // 1. Filter by DATE (Day granularity)
+    // Convert both to YYYY-MM-DD for comparison
     const targetDateStr = currentDate ? currentDate.toDateString() : "";
     const isTargetToday = currentDate && currentDate.toDateString() === now.toDateString();
+
+    let filtered = allConflicts.filter(c => {
+      const cDate = new Date(c.published_at)
+      return cDate.toDateString() === targetDateStr
+    })
 
     // Calculate 24h threshold for "Ingested Recently" logic
     const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
@@ -251,7 +286,6 @@ export default function Home() {
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const recent = allConflicts.filter(c => new Date(c.published_at) > oneDayAgo);
-      console.log(`📊 Stats: Total=${allConflicts.length}, Recent24h=${recent.length}, Threshold=${oneDayAgo.toISOString()}`);
       return recent;
     }
 
@@ -287,7 +321,7 @@ export default function Home() {
   }, [dateRange.max]);
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-slate-950">
+    <main className="relative h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
 
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 w-full p-6 z-[1000] pointer-events-none">
@@ -300,7 +334,7 @@ export default function Home() {
 
 
             {/* Stats Panel - Compact standalone box */}
-            <div className="mt-3 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-lg px-3 py-2 shadow-lg inline-block">
+            <div className="mt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-lg inline-block transition-colors">
               <div className="flex gap-5 items-end">
                 {/* 24H Activity */}
                 <div>
@@ -308,9 +342,9 @@ export default function Home() {
                   <div className="text-3xl font-bold text-blue-400 leading-none">{statsConflicts.length}</div>
                 </div>
                 {/* Today's Activity */}
-                <div className="border-l border-slate-700 pl-4">
+                <div className="border-l border-slate-200 dark:border-slate-700 pl-4">
                   <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Today</div>
-                  <div className="text-3xl font-bold text-emerald-400 leading-none">{todayConflicts.length}</div>
+                  <div className="text-3xl font-bold text-emerald-500 dark:text-emerald-400 leading-none">{todayConflicts.length}</div>
                 </div>
               </div>
               <div className="mt-1.5 flex gap-1.5 text-[10px]">
@@ -327,8 +361,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex gap-2 pointer-events-auto">
-            <button className="bg-slate-900/80 backdrop-blur border border-slate-700 hover:border-blue-500 hover:text-blue-400 text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium">
+          <div className="flex gap-2 pointer-events-auto items-center">
+            <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
+            <button className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium">
               About
             </button>
           </div>
@@ -336,17 +371,17 @@ export default function Home() {
       </div>
 
       {/* Search and Filters Overlay (Top Right) - Compact */}
-      <div className="absolute top-6 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
+      <div className="absolute top-20 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
 
         {/* Filter Controls */}
-        <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-2 w-64 transition-all">
+        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl pointer-events-auto flex flex-col gap-2 w-64 transition-all">
           {/* Search Input with Icon */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               placeholder="Search location or keyword..."
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-8 pr-8 py-2 text-sm text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg pl-8 pr-8 py-2 text-sm text-slate-900 dark:text-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -401,7 +436,7 @@ export default function Home() {
           </div>
 
           {/* Results Count */}
-          <div className="text-[10px] text-slate-500 font-mono pt-1.5 border-t border-slate-700">
+          <div className="text-[10px] text-slate-500 dark:text-slate-500 font-mono pt-1.5 border-t border-slate-200 dark:border-slate-700">
             Showing {filteredConflicts.length} of {allConflicts.length} conflicts
           </div>
         </div>
@@ -415,6 +450,7 @@ export default function Home() {
             setClusterConflicts(conflicts);
             setShowClusterSidebar(true);
           }}
+          theme={theme}
         />
       </div>
 
@@ -435,17 +471,17 @@ export default function Home() {
       {/* Cluster Sidebar: Situation Report */}
       {showClusterSidebar && (
         <div
-          className={`absolute right-0 top-0 h-full bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-all ease-out`}
+          className={`absolute right-0 top-0 h-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200 dark:border-slate-700 z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-colors ease-out`}
           style={{ width: sidebarExpanded ? '700px' : '400px' }}
         >
           {/* Header */}
-          <div className="p-5 border-b border-slate-700 flex justify-between items-start bg-slate-900">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start bg-slate-50 dark:bg-slate-900 transition-colors">
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1">Situation Report</div>
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <div className="text-[10px] uppercase tracking-widest text-blue-600 dark:text-blue-400 font-bold mb-1">Situation Report</div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 {clusterConflicts[0]?.location_name || 'Multiple Locations'}
               </h3>
-              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full bg-green-500`}></span>
                 Live Monitoring Active • {clusterConflicts.length} Reports
               </p>
@@ -453,14 +489,14 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white transition-all flex items-center justify-center border border-slate-700 hover:border-blue-500"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-600 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all flex items-center justify-center border border-slate-200 dark:border-slate-700 hover:border-blue-500"
                 title={sidebarExpanded ? "Collapse panel" : "Expand panel"}
               >
                 {sidebarExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
               <button
                 onClick={() => setShowClusterSidebar(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-slate-700"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center justify-center border border-slate-200 dark:border-slate-700"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -468,8 +504,8 @@ export default function Home() {
           </div>
 
           {/* Intel Stats */}
-          <div className="grid grid-cols-2 gap-px bg-slate-700/50 border-b border-slate-700">
-            <div className="bg-slate-900 p-4">
+          <div className="grid grid-cols-2 gap-px bg-slate-200 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
               <div className="text-[10px] text-slate-500 uppercase">Primary Threat</div>
               <div className="text-sm font-bold text-red-400 mt-0.5">
                 {/* Find most common category */}
@@ -479,7 +515,7 @@ export default function Home() {
                 }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown'}
               </div>
             </div>
-            <div className="bg-slate-900 p-4">
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
               <div className="text-[10px] text-slate-500 uppercase">Intensity Level</div>
               <div className="text-sm font-bold text-orange-400 mt-0.5">
                 {/* Max Severity */}
@@ -490,39 +526,39 @@ export default function Home() {
 
           {/* Scrollable List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-900/95 py-2 backdrop-blur z-10 border-b border-slate-800">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 bg-white/95 dark:bg-slate-900/95 py-2 backdrop-blur z-10 border-b border-slate-100 dark:border-slate-800 transition-colors">
               Latest Updates
             </div>
 
             {clusterConflicts.slice(0, 50).map((conflict, i) => (
               <div
                 key={conflict.id}
-                className="relative pl-6 pb-2 border-l border-slate-800 transition-colors group"
+                className="relative pl-6 pb-2 border-l border-slate-200 dark:border-slate-800 transition-colors group"
               >
                 {/* Timeline dot */}
-                <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${i === 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'
+                <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-slate-50 dark:border-slate-900 ${i === 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'
                   }`}></div>
 
                 <div
-                  className={`bg-slate-800/30 hover:bg-slate-800 border ${selectedArticleId === conflict.id ? 'border-blue-500 shadow-blue-500/10 shadow-lg' : 'border-slate-700/50 hover:border-blue-500/50'} rounded-lg transition-all cursor-pointer overflow-hidden`}
+                  className={`bg-slate-100/50 dark:bg-slate-800/30 hover:bg-slate-200/50 dark:hover:bg-slate-800 border ${selectedArticleId === conflict.id ? 'border-blue-500 shadow-blue-500/10 shadow-lg' : 'border-slate-200 dark:border-slate-700/50 hover:border-blue-500/50'} rounded-lg transition-all cursor-pointer overflow-hidden`}
                   onClick={() => setSelectedArticleId(selectedArticleId === conflict.id ? null : conflict.id)}
                 >
                   <div className="p-3">
                     <div className="flex justify-between items-start mb-1">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${conflict.severity >= 4 ? 'bg-red-600' : 'bg-slate-600'
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${conflict.severity >= 4 ? 'bg-red-600' : 'bg-slate-400 dark:bg-slate-600'
                         }`}>
                         {conflict.category}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                         {format(new Date(conflict.published_at), 'HH:mm')}
                       </span>
                     </div>
 
-                    <h4 className={`text-sm font-medium transition-colors leading-snug mb-1 ${selectedArticleId === conflict.id ? 'text-blue-400' : 'text-slate-200 group-hover:text-blue-400'}`}>
+                    <h4 className={`text-sm font-medium transition-colors leading-snug mb-1 ${selectedArticleId === conflict.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
                       {conflict.title}
                     </h4>
 
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-500 line-clamp-2 leading-relaxed">
                       {conflict.description?.replace(/<[^>]*>/g, '') || 'No description available'}
                     </p>
 

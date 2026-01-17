@@ -79,7 +79,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                     ? 'bg-slate-900 border-slate-500 text-white shadow-[0_0_20px_rgba(0,0,0,0.5)]'
                     : hasUnread
                         ? 'bg-slate-900 border-red-500 text-red-100 shadow-[0_0_25px_rgba(239,68,68,0.6)] animate-pulse'
-                        : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:bg-slate-800 hover:border-slate-500'
+                        : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
                     }`}
             >
                 <div className="relative">
@@ -88,7 +88,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                         animate={isNew ? { rotate: [0, -20, 20, -10, 10, 0] } : {}}
                         transition={{ duration: 0.5 }}
                     >
-                        <Bell size={20} className="text-slate-200" />
+                        <Bell size={20} className={isOpen || hasUnread ? "text-slate-200" : "text-slate-500 dark:text-slate-200"} />
                     </motion.div>
 
                     {/* Red Dot Badge */}
@@ -109,7 +109,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                             initial={{ opacity: 0, width: 0 }}
                             animate={{ opacity: 1, width: 'auto' }}
                             exit={{ opacity: 0, width: 0 }}
-                            className="ml-2.5 text-sm font-bold text-white overflow-hidden whitespace-nowrap"
+                            className="ml-2.5 text-sm font-bold text-slate-700 dark:text-white overflow-hidden whitespace-nowrap"
                         >
                             {notifications.length}
                         </motion.span>
@@ -125,9 +125,9 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                         animate={{ opacity: 1, y: 12, scale: 1, height: 'auto' }}
                         exit={{ opacity: 0, y: -10, scale: 0.95, height: 0 }}
                         transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                        className="w-80 sm:w-96 bg-slate-900/95 backdrop-blur-2xl border border-slate-600/80 rounded-2xl shadow-3xl overflow-hidden origin-top"
+                        className="w-80 sm:w-96 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-600/80 rounded-2xl shadow-3xl overflow-hidden origin-top"
                     >
-                        <div className="p-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
                             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Latest Updates</span>
                             {notifications.length > 0 && (
                                 <button onClick={onClearAll} className="text-[11px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-wide">
@@ -147,10 +147,9 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                                     <motion.div
                                         key={item.id}
                                         layout
-                                        initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: 20 }}
-                                        className="p-3 mb-1 rounded-xl hover:bg-slate-800/80 transition-all group relative cursor-pointer border border-transparent hover:border-slate-700/50"
+                                        className="p-3 mb-1 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-all group relative cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700/50"
                                         onClick={() => onLocate(item)}
                                     >
                                         <div className="flex justify-between items-start gap-3">
@@ -164,7 +163,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                                                         <MapPin size={9} /> {item.location_name || 'Unknown'}
                                                     </span>
                                                 </div>
-                                                <h4 className="text-sm font-semibold text-slate-100 line-clamp-2 leading-relaxed group-hover:text-white transition-colors">
+                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 leading-relaxed group-hover:text-blue-600 dark:group-hover:text-white transition-colors">
                                                     {item.title}
                                                 </h4>
                                             </div>
@@ -175,7 +174,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={(e) => e.stopPropagation()}
-                                                        className="text-slate-500 hover:text-blue-400 hover:bg-slate-700/50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                                        className="text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                                         title="Read Source"
                                                     >
                                                         <ExternalLink size={16} />
@@ -183,7 +182,7 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                                                 )}
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); onDismiss(item.id); }}
-                                                    className="text-slate-500 hover:text-red-400 hover:bg-slate-700/50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                                    className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700/50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                                     title="Dismiss"
                                                 >
                                                     <X size={16} />

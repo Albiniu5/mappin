@@ -78,7 +78,7 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
     if (headlines.length === 0) return null
 
     return (
-        <div className="absolute bottom-0 left-0 w-full z-[1000] bg-slate-900/90 backdrop-blur-md border-t border-slate-700 h-10 flex items-center overflow-hidden">
+        <div className="absolute bottom-0 left-0 w-full z-[1000] bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 h-10 flex items-center overflow-hidden">
             {/* Label */}
             <div className="bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none">
                 Breaking News
@@ -130,8 +130,8 @@ function NewsItem({ item }: { item: Conflict }) {
     return (
         <div className="flex items-center gap-2 whitespace-nowrap select-none">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-            <span className="font-bold text-slate-200">{format(new Date(item.published_at), 'HH:mm')}</span>
-            <span className="opacity-80 font-medium">{item.title}</span>
+            <span className="font-bold text-slate-700 dark:text-slate-200">{format(new Date(item.published_at), 'HH:mm')}</span>
+            <span className="opacity-80 font-medium text-slate-800 dark:text-slate-200">{item.title}</span>
             <span className="text-slate-500 text-[10px] uppercase">({item.location_name || 'Unknown'})</span>
         </div>
     )

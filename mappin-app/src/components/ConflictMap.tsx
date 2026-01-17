@@ -163,9 +163,10 @@ const ClusterController = ({ onZoomChange }: { onZoomChange: (zoom: number) => v
 interface ConflictMapProps {
     conflicts: Conflict[];
     onClusterClick?: (conflicts: Conflict[]) => void;
+    theme?: 'dark' | 'light';
 }
 
-export default function ConflictMap({ conflicts, onClusterClick }: ConflictMapProps) {
+export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark' }: ConflictMapProps) {
     // Defines a subset of conflicts that are currently "drilled down" (expanded)
     // Key: A unique ID for the cluster (e.g. "cluster-lat-lng")
     // Value: The data needed to render the drilled-down view
@@ -378,13 +379,16 @@ export default function ConflictMap({ conflicts, onClusterClick }: ConflictMapPr
             zoom={3}
             zoomControl={false}
             className="w-full h-full z-0"
-            style={{ background: '#1e293b' }}
+            style={{ background: theme === 'dark' ? '#1e293b' : '#f1f5f9' }}
             minZoom={3}
             maxBounds={[[-90, -180], [90, 180]]}
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url={theme === 'dark'
+                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                }
             />
 
             <ClusterController onZoomChange={handleZoomChange} />
