@@ -48,6 +48,25 @@
   animation: marquee 360s linear infinite;
 }
 
+
 .animate-marquee:hover {
   animation-play-state: paused;
+}
+
+@keyframes scanline {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: 0% 100%;
+  }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+  background: linear-gradient(to bottom,
+      transparent 50%,
+      rgba(34, 197, 94, 0.05) 50%);
+  background-size: 100% 4px;
 }

@@ -8,11 +8,13 @@ import { motion, useAnimationFrame, useMotionValue, useMotionValueEvent } from '
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
 
+
 interface NewsTickerProps {
     conflicts: Conflict[]
+    isAlienMode?: boolean
 }
 
-export default function NewsTicker({ conflicts }: NewsTickerProps) {
+export default function NewsTicker({ conflicts, isAlienMode = false }: NewsTickerProps) {
     const [headlines, setHeadlines] = useState<Conflict[]>([])
     const containerRef = useRef<HTMLDivElement>(null)
     const [contentWidth, setContentWidth] = useState(0)
@@ -77,11 +79,19 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
 
     if (headlines.length === 0) return null
 
+    const containerClasses = isAlienMode
+        ? "absolute bottom-0 left-0 w-full z-[1000] bg-black border-t border-green-900/50 h-10 flex items-center overflow-hidden font-mono shadow-[0_-5px_20px_rgba(0,0,0,0.8)]"
+        : "absolute bottom-0 left-0 w-full z-[1000] bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 h-10 flex items-center overflow-hidden font-sans";
+
+    const labelClasses = isAlienMode
+        ? "bg-green-900 text-green-300 border-r border-green-500 text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none animate-pulse"
+        : "bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none";
+
     return (
-        <div className="absolute bottom-0 left-0 w-full z-[1000] bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 h-10 flex items-center overflow-hidden">
+        <div className={containerClasses}>
             {/* Label */}
-            <div className="bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none">
-                Breaking News
+            <div className={labelClasses}>
+                {isAlienMode ? 'LIVE INTERCEPT' : 'Breaking News'}
             </div>
 
             {/* Ticker Container - Mask */}
@@ -103,21 +113,21 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
                     {/* Set 1 (Left Buffer) */}
                     <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
-                            <NewsItem key={`set1-${item.id}`} item={item} />
+                            <NewsItem key={`set1-${item.id}`} item={item} isAlienMode={isAlienMode} />
                         ))}
                     </div>
 
                     {/* Set 2 (Primary/Center) */}
                     <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
-                            <NewsItem key={`set2-${item.id}`} item={item} />
+                            <NewsItem key={`set2-${item.id}`} item={item} isAlienMode={isAlienMode} />
                         ))}
                     </div>
 
                     {/* Set 3 (Right Buffer) */}
                     <div className="flex gap-12 items-center shrink-0 px-6">
                         {headlines.map((item) => (
-                            <NewsItem key={`set3-${item.id}`} item={item} />
+                            <NewsItem key={`set3-${item.id}`} item={item} isAlienMode={isAlienMode} />
                         ))}
                     </div>
                 </motion.div>
@@ -126,7 +136,18 @@ export default function NewsTicker({ conflicts }: NewsTickerProps) {
     )
 }
 
-function NewsItem({ item }: { item: Conflict }) {
+function NewsItem({ item, isAlienMode }: { item: Conflict, isAlienMode: boolean }) {
+    if (isAlienMode) {
+        return (
+            <div className="flex items-center gap-2 whitespace-nowrap select-none">
+                <span className="w-1.5 h-1.5 bg-green-500 animate-[ping_2s_infinite] shrink-0"></span>
+                <span className="font-bold text-green-600">{format(new Date(item.published_at), 'HH:mm')}</span>
+                <span className="font-medium text-green-400 uppercase tracking-tight">{item.title}</span>
+                <span className="text-green-800 text-[10px] uppercase">[{item.location_name || 'UNKNOWN'}]</span>
+            </div>
+        )
+    }
+
     return (
         <div className="flex items-center gap-2 whitespace-nowrap select-none">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>

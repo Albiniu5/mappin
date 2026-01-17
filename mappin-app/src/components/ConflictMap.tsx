@@ -119,6 +119,43 @@ const createRingIcon = (color: string, size: number = 30, hasJudge: boolean = fa
     });
 };
 
+// Alien Icon Generator
+const createAlienIcon = (type: string = 'Unknown', size: number = 30) => {
+    const icons: Record<string, string> = {
+        'Sighting': '🛸',
+        'Abduction': '👽',
+        'Crop Circle': '🌾',
+        'Cattle Mutilation': '🐄',
+        'Military Encounter': '✈️',
+        'Telepathic Contact': '⚡',
+        'Unknown': '🛸'
+    };
+    const emoji = icons[type] || '🛸';
+
+    return new L.DivIcon({
+        html: `
+            <div style="position: relative; width: ${size}px; height: ${size}px;" class="group hover:scale-125 transition-transform duration-300">
+                <!-- Eerie Glow -->
+                <div style="position: absolute; inset: 0; border-radius: 50%; filter: blur(6px); background: #22c55e; opacity: 0.7; animation: pulse 2s infinite;"></div>
+                
+                <div style="
+                    position: absolute; 
+                    inset: 0; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-size: ${size * 0.8}px;
+                    z-index: 10;
+                    filter: drop-shadow(0 0 4px #000);
+                ">${emoji}</div>
+            </div>
+        `,
+        className: 'bg-transparent',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+    });
+};
+
 
 const CATEGORY_COLORS: Record<string, string> = {
     'Armed Conflict': '#ef4444',
@@ -164,9 +201,10 @@ interface ConflictMapProps {
     conflicts: Conflict[];
     onClusterClick?: (conflicts: Conflict[]) => void;
     theme?: 'dark' | 'light';
+    isAlienMode?: boolean;
 }
 
-export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark' }: ConflictMapProps) {
+export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark', isAlienMode = false }: ConflictMapProps) {
     // Defines a subset of conflicts that are currently "drilled down" (expanded)
     // Key: A unique ID for the cluster (e.g. "cluster-lat-lng")
     // Value: The data needed to render the drilled-down view
@@ -384,8 +422,9 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark' 
             maxBounds={[[-90, -180], [90, 180]]}
         >
             <TileLayer
+                className={isAlienMode ? 'filter sepia hue-rotate-[90deg] contrast-125 brightness-75 transition-all duration-1000' : 'transition-all duration-1000'}
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                url={theme === 'dark'
+                url={theme === 'dark' || isAlienMode
                     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 }
@@ -411,6 +450,11 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark' 
                     });
                     return createDonutIcon(stats, markers.length);
                 }}
+                // Custom styles for Alien Clusters
+                polygonOptions={{
+                    color: isAlienMode ? '#22c55e' : '#3b82f6',
+                    fillColor: isAlienMode ? '#22c55e' : '#3b82f6',
+                }}
                 // CRITICAL FIX: Use eventHandlers instead of onClick
                 eventHandlers={{
                     clusterclick: (e: any) => handleClusterClick(e.layer)
@@ -420,7 +464,10 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark' 
                     <Marker
                         key={c.id}
                         position={[c.latitude!, c.longitude!]} // Assumes valid from filter
-                        icon={createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30, !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0))}
+                        icon={isAlienMode
+                            ? createAlienIcon((c.related_reports as any)?.alien_specific_type || 'Unknown')
+                            : createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30, !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0))
+                        }
                         title={c.title}
                         // @ts-ignore
                         conflictData={c}

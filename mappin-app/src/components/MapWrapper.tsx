@@ -12,9 +12,10 @@ interface MapWrapperProps {
     conflicts: Conflict[]
     onClusterClick?: (conflicts: Conflict[]) => void
     theme?: 'dark' | 'light'
+    isAlienMode?: boolean
 }
 
-export default function MapWrapper({ conflicts, onClusterClick, theme }: MapWrapperProps) {
+export default function MapWrapper({ conflicts, onClusterClick, theme, isAlienMode = false }: MapWrapperProps) {
     const Map = useMemo(() => dynamic(
         () => import('@/components/ConflictMap'),
         {
@@ -23,5 +24,5 @@ export default function MapWrapper({ conflicts, onClusterClick, theme }: MapWrap
         }
     ), [])
 
-    return <Map conflicts={conflicts} onClusterClick={onClusterClick} theme={theme} />
+    return <Map conflicts={conflicts} onClusterClick={onClusterClick} theme={theme} isAlienMode={isAlienMode} />
 }
