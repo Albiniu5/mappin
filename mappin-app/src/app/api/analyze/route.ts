@@ -2,8 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { JSDOM } from 'jsdom';
-import { Readability } from '@mozilla/readability';
 
 // Initialize Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -15,6 +13,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 /**
  * Extract article content from URL using Readability
+ * Uses dynamic imports to avoid Next.js build issues with ESM modules
  */
 async function extractArticleContent(url: string): Promise<string | null> {
   try {
@@ -39,6 +38,10 @@ async function extractArticleContent(url: string): Promise<string | null> {
     }
 
     const html = await response.text();
+
+    // Dynamic imports to avoid Next.js build issues
+    const { JSDOM } = await import('jsdom');
+    const { Readability } = await import('@mozilla/readability');
 
     // Parse with Readability
     const dom = new JSDOM(html, { url });
