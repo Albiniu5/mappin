@@ -1,0 +1,102 @@
+{
+    "name": "Mappin Conflict Ingestion",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "trigger-1",
+            "name": "Every Hour",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://reliefweb.int/updates/rss"
+            },
+            "id": "rss-read",
+            "name": "ReliefWeb RSS",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1.4,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Map RSS items to Mappin API format\nreturn items.map(item => {\n  const rss = item.json;\n  return {\n    json: {\n      title: rss.title,\n      body: rss.contentSnippet || rss.content || rss.description,\n      url: rss.link,\n      date: new Date(rss.pubDate).toISOString(),\n      // Optional: Pass source if your API supports it\n      source: 'ReliefWeb RSS'\n    }\n  };\n});"
+            },
+            "id": "format-data",
+            "name": "Format Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://localhost:3000/api/ingest/save",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "reports",
+                            "value": "={{ [ $json ] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "http-post",
+            "name": "Save to Mappin",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                850,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Every Hour": {
+            "main": [
+                [
+                    {
+                        "node": "ReliefWeb RSS",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "ReliefWeb RSS": {
+            "main": [
+                [
+                    {
+                        "node": "Format Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Data": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Mappin",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,261 @@
+{
+    "name": "Mappin AI Ingestion (Public)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ingest",
+                "responseMode": "onReceived",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "Webhook POST /ingest",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                100,
+                300
+            ],
+            "webhookId": "mappin-ingest"
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "body.items",
+                "options": {}
+            },
+            "id": "split",
+            "name": "Split Reports",
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 3,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "AIzaSyBUiLEbcDkEsAuHjzqF48S5QbeKfGxE8Fc"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). Input: Title: \" + $json.title + \" Desc: \" + $json.description } ] } ] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini",
+            "name": "Gemini AI",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ],
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "AIzaSyBxy1M6i_AqiDEezTYCWqRorthYTNwqwtA"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). Input: Title: \" + $json.title + \" Desc: \" + $json.description } ] } ] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini_fallback",
+            "name": "Gemini AI Fallback",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse Gemini JSON response\ntry {\n  const raw = $json.candidates[0].content.parts[0].text;\n  const clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();\n  const data = JSON.parse(clean);\n  const src = $('Split Reports').item.json;\n  return { json: { ...data, title: src.title, source_url: src.url, published_at: src.date, created_at: new Date().toISOString() } };\n} catch (e) {\n  return { json: { error: 'Parse failed', raw: $json } };\n}"
+            },
+            "id": "parse",
+            "name": "Parse JSON",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/conflicts",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "value": "={{ $json.title }}"
+                        },
+                        {
+                            "name": "description",
+                            "value": "={{ $json.description }}"
+                        },
+                        {
+                            "name": "source_url",
+                            "value": "={{ $json.source_url }}"
+                        },
+                        {
+                            "name": "published_at",
+                            "value": "={{ $json.published_at }}"
+                        },
+                        {
+                            "name": "latitude",
+                            "value": "={{ $json.latitude }}"
+                        },
+                        {
+                            "name": "longitude",
+                            "value": "={{ $json.longitude }}"
+                        },
+                        {
+                            "name": "location_name",
+                            "value": "={{ $json.location_name }}"
+                        },
+                        {
+                            "name": "category",
+                            "value": "={{ $json.category }}"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "={{ $json.severity }}"
+                        }
+                    ]
+                },
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMjk0NTYsImV4cCI6MjA4MzgwNTQ1Nn0.R5HvrTa8ox6IiIeIiFk8KxD13SW4O8kRwgwVUj9IWpk"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmdnh1dXN0bWJmYmtja2tmdHhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMjk0NTYsImV4cCI6MjA4MzgwNTQ1Nn0.R5HvrTa8ox6IiIeIiFk8KxD13SW4O8kRwgwVUj9IWpk"
+                        },
+                        {
+                            "name": "Prefer",
+                            "value": "resolution=merge-duplicates"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "supabase",
+            "name": "Supabase Insert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook POST /ingest": {
+            "main": [
+                [
+                    {
+                        "node": "Split Reports",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Reports": {
+            "main": [
+                [
+                    {
+                        "node": "Gemini AI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini AI": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ],
+            "error": [
+                [
+                    {
+                        "node": "Gemini AI Fallback",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini AI Fallback": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Insert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

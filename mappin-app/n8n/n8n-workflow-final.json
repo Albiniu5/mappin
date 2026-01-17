@@ -1,0 +1,205 @@
+{
+    "name": "Mappin RSS Ingestion (Final Working)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ingest-live",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "Webhook POST /ingest-live",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                200,
+                300
+            ],
+            "webhookId": "mappin-ingest"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Robust splitting of input items\nconst inputData = $input.all()[0].json;\n\n// Try to find the items array in different possible locations\nconst items = inputData.items \n           || inputData.body?.items \n           || (Array.isArray(inputData) ? inputData : []);\n\nif (!Array.isArray(items) || items.length === 0) {\n  // If no items found, return empty execution (stops workflow)\n  return [];\n}\n\n// Map to n8n item format\nreturn items.map(item => ({\n  json: {\n    title: item.title,\n    description: item.description,\n    url: item.url,\n    date: item.date\n  }\n}));"
+            },
+            "id": "split_code",
+            "name": "Split Logic",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                400,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "key",
+                            "value": "YOUR_GEMINI_API_KEY_HERE"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). RULES: 1. If location is a country/region, use the geographic center or capital coordinates. 2. NEVER return null for latitude/longitude. 3. Return a SINGLE JSON object, not an array. Input: Title: \" + $json.title + \" Desc: \" + $json.description } ] } ] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini",
+            "name": "Gemini AI",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse Gemini JSON response\ntry {\n  const rawText = $json.candidates[0].content.parts[0].text;\n  const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n  let aiData = JSON.parse(cleanText);\n  \n  // Handle array response\n  if (Array.isArray(aiData)) {\n    aiData = aiData[0];\n  }\n  \n  const inputItem = $('Split Logic').item.json;\n  \n  return {\n    json: {\n      ...aiData,\n      title: inputItem.title,\n      description: aiData.summary || inputItem.description,\n      source_url: inputItem.url,\n      published_at: inputItem.date,\n      created_at: new Date().toISOString()\n    }\n  };\n} catch (e) {\n  return { json: { error: 'AI Parse Failed', raw: $json } };\n}"
+            },
+            "id": "parse",
+            "name": "Parse JSON",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                800,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://efvxuustmbfbkckkftxi.supabase.co/rest/v1/conflicts",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "supabaseApi",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "value": "={{ $json.title }}"
+                        },
+                        {
+                            "name": "description",
+                            "value": "={{ $json.description }}"
+                        },
+                        {
+                            "name": "source_url",
+                            "value": "={{ $json.source_url }}"
+                        },
+                        {
+                            "name": "published_at",
+                            "value": "={{ $json.published_at }}"
+                        },
+                        {
+                            "name": "latitude",
+                            "value": "={{ $json.latitude }}"
+                        },
+                        {
+                            "name": "longitude",
+                            "value": "={{ $json.longitude }}"
+                        },
+                        {
+                            "name": "location_name",
+                            "value": "={{ $json.location_name }}"
+                        },
+                        {
+                            "name": "category",
+                            "value": "={{ $json.category }}"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "={{ $json.severity }}"
+                        }
+                    ]
+                },
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Prefer",
+                            "value": "resolution=merge-duplicates"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "supabase",
+            "name": "Supabase Insert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1000,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "YOUR_CREDENTIAL_ID_HERE",
+                    "name": "Supabase account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook POST /ingest-live": {
+            "main": [
+                [
+                    {
+                        "node": "Split Logic",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Logic": {
+            "main": [
+                [
+                    {
+                        "node": "Gemini AI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini AI": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Insert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

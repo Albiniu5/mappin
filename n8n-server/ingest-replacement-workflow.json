@@ -1,0 +1,192 @@
+{
+    "name": "Mappin AI Ingestion (Replacement)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ingest-ai",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "Webhook POST /ingest-ai",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "fieldToSplitOut": "body.reports",
+                "options": {}
+            },
+            "id": "split-items",
+            "name": "Split Reports",
+            "type": "n8n-nodes-base.itemLists",
+            "typeVersion": 1,
+            "position": [
+                300,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_KEY_HERE",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "contents",
+                            "value": "={{ [ { \"parts\": [ { \"text\": \"Analyze this news for conflict data. JSON only. Fields: latitude(num), longitude(num), location_name(str), category(Armed Conflict|Protest|Political Unrest|Other), severity(1-5), summary(str). Input: Title: \" + $json.title + \" Desc: \" + $json.body } ] } ] }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "gemini-api",
+            "name": "Gemini AI Extraction",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse Gemini JSON response\ntry {\n  const rawText = $json.candidates[0].content.parts[0].text;\n  const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();\n  const aiData = JSON.parse(cleanText);\n  \n  return {\n    json: {\n      ...aiData,\n      title: $('Split Reports').item.json.title,\n      description: $('Split Reports').item.json.body,\n      source_url: $('Split Reports').item.json.url,\n      published_at: $('Split Reports').item.json.date,\n      created_at: new Date().toISOString()\n    }\n  };\n} catch (e) {\n  return { json: { error: 'AI Parse Failed', raw: $json } };\n}"
+            },
+            "id": "parse-ai",
+            "name": "Parse JSON",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "YOUR_SUPABASE_URL_HERE/rest/v1/conflicts",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "value": "={{ $json.title }}"
+                        },
+                        {
+                            "name": "description",
+                            "value": "={{ $json.summary }} (Auto-Extracted)"
+                        },
+                        {
+                            "name": "source_url",
+                            "value": "={{ $json.source_url }}"
+                        },
+                        {
+                            "name": "published_at",
+                            "value": "={{ $json.published_at }}"
+                        },
+                        {
+                            "name": "latitude",
+                            "value": "={{ $json.latitude }}"
+                        },
+                        {
+                            "name": "longitude",
+                            "value": "={{ $json.longitude }}"
+                        },
+                        {
+                            "name": "location_name",
+                            "value": "={{ $json.location_name }}"
+                        },
+                        {
+                            "name": "category",
+                            "value": "={{ $json.category }}"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "={{ $json.severity }}"
+                        }
+                    ]
+                },
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "YOUR_SUPABASE_ANON_KEY_HERE"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer YOUR_SUPABASE_ANON_KEY_HERE"
+                        },
+                        {
+                            "name": "Prefer",
+                            "value": "resolution=merge-duplicates"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "supabase-insert",
+            "name": "Supabase Insert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook POST /ingest-ai": {
+            "main": [
+                [
+                    {
+                        "node": "Split Reports",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split Reports": {
+            "main": [
+                [
+                    {
+                        "node": "Gemini AI Extraction",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini AI Extraction": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Insert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

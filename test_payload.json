@@ -1,0 +1,10 @@
+{
+    "items": [
+        {
+            "title": "Test Ingestion",
+            "description": "Verifying production webhook",
+            "url": "https://example.com/test-article",
+            "date": "2026-01-16T12:00:00Z"
+        }
+    ]
+}
