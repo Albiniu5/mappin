@@ -34,7 +34,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyBUiLEbcDkEsAuHjzqF48S5QbeKfGxE8Fc",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=YOUR_GEMINI_API_KEY",
                 "sendBody": true,
                 "contentType": "json",
                 "bodyParameters": {
@@ -80,7 +80,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBxy1M6i_AqiDEezTYCWqRorthYTNwqwtA",
+                "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_GEMINI_API_KEY",
                 "sendBody": true,
                 "contentType": "json",
                 "bodyParameters": {
