@@ -48,7 +48,8 @@ export default function AIAnalysisPanel({ conflict }: AIAnalysisPanelProps) {
                         title: conflict.title,
                         source: new URL(conflict.source_url).hostname.replace('www.', ''),
                         published_at: conflict.published_at,
-                        content: conflict.description || conflict.title // Fallback if description empty
+                        content: conflict.description || conflict.title, // Fallback if description empty
+                        source_url: conflict.source_url // NEW: Enable full article extraction
                     })
                 });
 

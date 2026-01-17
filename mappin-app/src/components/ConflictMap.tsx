@@ -494,7 +494,7 @@ export default function ConflictMap({ conflicts, onClusterClick }: ConflictMapPr
                 activeClusters={activeClusters}
                 expandedCategories={expandedCategories}
                 onToggleCategory={toggleCategory}
-                onSidebarOpen={onClusterClick}
+                onMarkerClick={handleMarkerClick}
             />
 
         </MapContainer>
@@ -599,7 +599,39 @@ function ActiveClusterLayer({
                                             eventHandlers={{
                                                 click: (e) => onMarkerClick(e, c)
                                             }}
-                                        />
+                                        >
+                                            <Popup className="custom-popup" minWidth={300}>
+                                                <div className="p-1">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm`} style={{ backgroundColor: CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'] }}>
+                                                            {c.category}
+                                                        </span>
+                                                        <span className="text-xs text-slate-400 font-medium">
+                                                            {new Date(c.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-slate-900 mb-2 leading-snug">
+                                                        {c.title}
+                                                    </h3>
+                                                    {c.description && (
+                                                        <p className="text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed">
+                                                            {c.description}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                        <a
+                                                            href={c.source_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            Read Source <span className="text-[10px]">→</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
                                     </Fragment>
                                 );
                             })}
