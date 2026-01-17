@@ -27,9 +27,11 @@ export async function GET() {
     try {
         console.log('[Alien Ingest] Starting UFO intake...');
 
-        // Randomly pick 2 feeds to process per run to avoid timeouts/rate limits
-        const shuffled = [...ALIEN_FEEDS].sort(() => 0.5 - Math.random());
-        const selectedFeeds = shuffled.slice(0, 2);
+
+        console.log('[Alien Ingest] Starting UFO intake...');
+
+        // Process ALL feeds now that we want to populate data
+        const selectedFeeds = ALIEN_FEEDS;
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -38,8 +40,8 @@ export async function GET() {
                 console.log(`[Alien Ingest] Fetching ${url}...`);
                 const items = await fetchRSS(url);
 
-                // Process top 2 items from each feed
-                const recentItems = items.slice(0, 2);
+                // Process top 5 items (was 2)
+                const recentItems = items.slice(0, 5);
 
                 for (const item of recentItems) {
                     // Check if exists

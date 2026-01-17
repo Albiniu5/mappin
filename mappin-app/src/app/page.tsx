@@ -13,7 +13,7 @@ type Conflict = Database['public']['Tables']['conflicts']['Row']
 import { toast } from 'sonner'
 import { useRef } from 'react'
 import NewsTicker from '@/components/NewsTicker'
-import NotificationCenter from '@/components/NotificationCenter'
+// import NotificationCenter from '@/components/NotificationCenter'
 import JudgeCenter from '@/components/JudgeCenter'
 import packageJson from '../../package.json'
 
@@ -518,14 +518,9 @@ export default function Home() {
       )}
 
       {/* Notifications and Ticker */}
-      <div className="fixed top-6 z-[3000] flex items-center gap-3 transition-all duration-500 ease-out left-1/2 -translate-x-1/2">
-        <NotificationCenter
-          notifications={notifications}
-          onLocate={(item) => setCurrentDate(new Date(item.published_at))}
-          onDismiss={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
-          onClearAll={() => setNotifications([])}
-        />
-      </div>
+      {/* Notifications and Ticker */}
+      {/* NotificationCenter removed per user request */}
+
 
       <NewsTicker conflicts={filteredConflicts} isAlienMode={isAlienMode} />
 
