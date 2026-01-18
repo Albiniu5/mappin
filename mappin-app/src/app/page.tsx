@@ -332,85 +332,64 @@ export default function Home() {
 
             {/* Stats Panel */}
             <div className={statsBoxClass}>
-              {/* Top Bar */}
+              {/* Date Display */}
               <div className={statsHeaderClass}>
-                <div className={isAlienMode ? "text-[10px] text-green-600 font-bold uppercase tracking-wider" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider"}>
-                  {isAlienMode ? 'SIGNAL STRENGTH' : 'Updates (1h)'}
-                </div>
-                <div className={isAlienMode ? "text-xs font-bold text-green-400 drop-shadow-sm animate-pulse" : "text-xs font-bold text-violet-600 dark:text-violet-400 drop-shadow-sm"}>
-                  +{addedLastHour} {isAlienMode ? 'sigs' : 'new'}
+                <div className="flex items-center gap-2">
+                  <div className={isAlienMode ? "text-2xl font-black text-green-400 font-mono tracking-wider" : "text-2xl font-bold text-slate-800 dark:text-slate-100"}>
+                    {currentDate ? format(currentDate, 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy')}
+                  </div>
+                  <div className={isAlienMode ? "text-sm text-green-600 font-bold uppercase tracking-wider" : "text-sm text-slate-500 font-semibold"}>
+                    {currentDate?.toDateString() === new Date().toDateString() ? '(LIVE)' : ''}
+                  </div>
                 </div>
               </div>
 
-              {/* Bottom Row */}
-              <div className="flex px-3 py-2 items-center justify-between gap-6">
+              {/* Stats Row */}
+              <div className="flex px-3 py-2 items-center gap-6">
                 <div className="flex flex-col">
                   <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>24h</div>
                   <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-blue-500 dark:text-blue-400 leading-none tracking-tight"}>{statsConflicts.length}</div>
                 </div>
 
-                <div className={isAlienMode ? "w-px h-6 bg-green-900" : "w-px h-6 bg-slate-200 dark:bg-slate-700"}></div>
+                <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
 
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col">
                   <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>Today</div>
                   <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-emerald-500 dark:text-emerald-400 leading-none tracking-tight"}>{todayConflicts.length}</div>
                 </div>
+
+                <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
+
+                <div className="flex flex-col">
+                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>+1h</div>
+                  <div className={isAlienMode ? "text-2xl font-black text-green-400 leading-none tracking-tight font-mono animate-pulse" : "text-2xl font-black text-violet-500 dark:text-violet-400 leading-none tracking-tight"}>{addedLastHour}</div>
+                </div>
               </div>
 
-              {!isAlienMode && (
-                <div className="mt-1.5 flex gap-1.5 text-[10px]">
-                  <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">
-                    ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
-                  </span>
-                  <span className="bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded">
-                    📣 {statsConflicts.filter(c => c.category === 'Protest').length}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 pointer-events-auto items-center">
-              {!isAlienMode && <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />}
-              <button
-                onClick={() => setShowAbout(true)}
-                className={isAlienMode
-                  ? "bg-black/80 border border-green-600 text-green-500 hover:text-green-300 hover:border-green-400 px-4 py-2 rounded-none text-sm transition-all shadow-lg font-mono tracking-widest uppercase"
-                  : "bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200 dark:border-slate-700 hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-lg text-sm transition-all shadow-lg font-medium"}
-              >
-                {isAlienMode ? 'CLASSIFIED' : 'About'}
-              </button>
-              <button
-                onClick={() => {
-                  setIsAlienMode(!isAlienMode);
-                  setSelectedCategory('All');
-                  setAlienSubFilter('All');
-                }}
-                className={`w-10 h-10 flex items-center justify-center transition-all duration-500 shadow-lg border ${isAlienMode
-                  ? 'bg-green-900 border-green-400 text-green-400 shadow-[0_0_20px_#22c55e] scale-110 rounded-sm'
-                  : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-green-500 hover:border-green-500 rounded-full'
-                  }`}
-                title={isAlienMode ? "Deactivate Alien Lens" : "Activate Alien Lens"}
-              >
-                {isAlienMode ? '👽' : '🛰️'}
-              </button>
+              {/* Category Breakdown - Always Visible */}
+              <div className="px-3 pb-2 flex gap-1.5 text-[10px]">
+                {isAlienMode ? (
+                  <>
+                    <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
+                      ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
+                    </span>
+                    <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
+                      📣 {statsConflicts.filter(c => c.category === 'Protest').length}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">
+                      ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
+                    </span>
+                    <span className="bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded">
+                      📣 {statsConflicts.filter(c => c.category === 'Protest').length}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Right Validation Tools */}
-      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-4 pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-2">
-          <JudgeCenter
-            conflicts={allConflicts}
-            onLocate={handleLocateNotification}
-          />
-          <NotificationCenter
-            notifications={activeNotifications}
-            onLocate={handleLocateNotification}
-            onDismiss={handleDismissNotification}
-            onClearAll={handleClearNotifications}
-            isAlienMode={isAlienMode}
-          />
         </div>
       </div>
 
@@ -508,23 +487,108 @@ export default function Home() {
         />
       </div>
 
-      {/* Timeline Controls (Hidden in Alien Mode for now? Or styled?) */}
-      {/* Timeline Controls */}
-      {
-        currentDate && (
-          <Timeline
-            date={currentDate}
-            setDate={(d) => setCurrentDate(d)}
-            minDate={dateRange.min}
-            maxDate={timelineMaxDate}
-            isPlaying={isPlaying}
-            onPlayToggle={() => setIsPlaying(!isPlaying)}
-            playbackSpeed={playbackSpeed}
-            setPlaybackSpeed={setPlaybackSpeed}
+      {/* Redesigned Bottom Control Bar */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+        <div className={`pointer-events-auto inline-flex items-center gap-2 px-3 py-2.5 rounded-full backdrop-blur-2xl transition-all shadow-2xl border ${isAlienMode
+          ? 'bg-black/90 border-green-500/30 shadow-green-500/20'
+          : 'bg-white/90 dark:bg-slate-900/90 border-slate-200/50 dark:border-slate-700/50 shadow-slate-900/10'
+          }`}>
+
+          {/* Notification */}
+          <NotificationCenter
+            notifications={activeNotifications}
+            onLocate={handleLocateNotification}
+            onDismiss={handleDismissNotification}
+            onClearAll={handleClearNotifications}
             isAlienMode={isAlienMode}
           />
-        )
-      }
+
+          {/* Judge - Only in Normal Mode */}
+          {!isAlienMode && (
+            <JudgeCenter
+              conflicts={allConflicts}
+              onLocate={handleLocateNotification}
+            />
+          )}
+
+          {/* Divider */}
+          <div className={`w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+
+          {/* Date Navigation Group */}
+          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${isAlienMode ? 'bg-green-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+            <button
+              onClick={() => setCurrentDate(prev => prev ? new Date(prev.getTime() - 86400000) : new Date())}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setCurrentDate(new Date())}
+              className={`px-3 h-7 rounded-full text-sm font-semibold transition-colors ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400 font-mono'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                }`}
+            >
+              {isAlienMode ? 'NOW' : 'Today'}
+            </button>
+            <button
+              onClick={() => setCurrentDate(prev => prev ? new Date(prev.getTime() + 86400000) : new Date())}
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className={`w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+
+          {/* Theme Toggle - Only in Normal Mode */}
+          {!isAlienMode && <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />}
+
+          {/* About */}
+          <button
+            onClick={() => setShowAbout(true)}
+            className={`h-8 px-3 rounded-full text-sm font-semibold transition-colors inline-flex items-center gap-1.5 ${isAlienMode
+              ? 'hover:bg-green-900/40 text-green-400'
+              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            About
+          </button>
+
+          {/* Divider */}
+          <div className={`w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+
+          {/* Alien Mode Toggle - Hero Button */}
+          <button
+            onClick={() => {
+              setIsAlienMode(!isAlienMode);
+              setSelectedCategory('All');
+              setAlienSubFilter('All');
+            }}
+            className={`h-9 px-4 rounded-full text-sm font-bold transition-all inline-flex items-center gap-2 ${isAlienMode
+              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/40 shadow-lg shadow-green-500/20'
+              : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-600'
+              }`}
+          >
+            <span>{isAlienMode ? '👽' : '🛰️'}</span>
+            <span className={isAlienMode ? 'font-mono uppercase tracking-wide' : ''}>{isAlienMode ? 'ACTIVE' : 'Alien'}</span>
+          </button>
+        </div>
+      </div>
 
       {/* Cluster Sidebar */}
       {
@@ -581,12 +645,49 @@ export default function Home() {
                     onClick={() => setSelectedArticleId(selectedArticleId === conflict.id ? null : conflict.id)}
                   >
                     <div className="p-3">
-                      <h4 className={`text-sm font-medium transition-colors leading-snug mb-1 ${isAlienMode ? 'text-green-400 font-mono' : 'text-slate-800 dark:text-slate-200'}`}>
+                      {/* Article Header */}
+                      <div className="flex justify-between items-start mb-2">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-sm ${isAlienMode ? 'text-black border border-green-400' : 'text-white'}`}
+                          style={{ backgroundColor: isAlienMode ? '#22c55e' : ({ 'Armed Conflict': '#ef4444', 'Protest': '#f59e0b', 'Political Unrest': '#f97316', 'Other': '#3b82f6' }[conflict.category] || '#3b82f6') }}
+                        >
+                          {conflict.category}
+                        </span>
+                        <span className={isAlienMode ? "text-[10px] text-green-600 font-bold uppercase tracking-wider" : "text-[10px] text-slate-400 font-medium"}>
+                          {new Date(conflict.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+
+                      {/* Title */}
+                      <h4 className={`text-sm font-medium transition-colors leading-snug mb-2 ${isAlienMode ? 'text-green-400 font-mono' : 'text-slate-800 dark:text-slate-200'}`}>
                         {conflict.title}
                       </h4>
+
+                      {/* Description */}
+                      {conflict.description && (
+                        <p className={isAlienMode ? "text-xs text-green-700 mb-2 line-clamp-2 leading-relaxed" : "text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2 leading-relaxed"}>
+                          {conflict.description}
+                        </p>
+                      )}
+
+                      {/* Read Source Link */}
+                      <div className={isAlienMode ? "flex justify-between items-center pt-2 border-t border-green-900/30" : "flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700"}>
+                        <a
+                          href={conflict.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={isAlienMode ? "text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider" : "text-xs font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {isAlienMode ? 'ACCESS LOG' : 'Read Source'} <span className="text-[10px]">→</span>
+                        </a>
+                      </div>
+
                       {/* AI Panel Expansion */}
                       {selectedArticleId === conflict.id && (
-                        <AIAnalysisPanel conflict={conflict} isAlienMode={isAlienMode} />
+                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                          <AIAnalysisPanel conflict={conflict} isAlienMode={isAlienMode} />
+                        </div>
                       )}
                     </div>
                   </div>

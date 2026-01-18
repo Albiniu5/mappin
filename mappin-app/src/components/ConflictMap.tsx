@@ -189,6 +189,84 @@ const createAlienClusterIcon = (count: number) => {
     });
 };
 
+// Alien Icon WITH notification badge (for same category, multiple articles)
+const createAlienIconWithBadge = (type: string = 'Unknown', count: number, size: number = 30) => {
+    const icons: Record<string, string> = {
+        'Sighting': '🛸',
+        'Abduction': '👽',
+        'Crop Circle': '🌾',
+        'Cattle Mutilation': '🐄',
+        'Military Encounter': '✈️',
+        'Telepathic Contact': '⚡',
+        'Unknown': '🛸'
+    };
+    const emoji = icons[type] || '🛸';
+
+    return new L.DivIcon({
+        html: `
+            <div style="position: relative; width: ${size}px; height: ${size}px;" class="group hover:scale-125 transition-transform duration-300">
+                <!-- Eerie Glow -->
+                <div style="position: absolute; inset: 0; border-radius: 50%; filter: blur(6px); background: #22c55e; opacity: 0.7; animation: pulse 2s infinite;"></div>
+                
+                <div style="
+                    position: absolute; 
+                    inset: 0; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-size: ${size * 0.8}px;
+                    z-index: 10;
+                    filter: drop-shadow(0 0 4px #000);
+                ">${emoji}</div>
+
+                <!-- Notification Badge -->
+                <div style="position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; background: #22c55e; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 0 8px #22c55e;">
+                    <span style="font-size: 9px; font-weight: bold; color: #000; font-family: monospace;">${count}</span>
+                </div>
+            </div>
+        `,
+        className: 'bg-transparent',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+    });
+};
+
+// HOTSPOT Icon (for multiple categories at same location)
+const createHotspotIcon = (count: number, size: number = 40) => {
+    return new L.DivIcon({
+        html: `
+            <div style="position: relative; width: ${size}px; height: ${size}px;" class="group hover:scale-110 transition-transform duration-300">
+                <!-- Pulsing Glow -->
+                <div style="position: absolute; inset: 0; border-radius: 50%; filter: blur(12px); background: #22c55e; opacity: 0.8; animation: pulse 1.5s infinite;"></div>
+                
+                <!-- Outer Ring -->
+                <div style="position: absolute; inset: 2px; border-radius: 50%; border: 3px solid #22c55e; background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), inset 0 0 10px rgba(34, 197, 94, 0.3);"></div>
+                
+                <!-- Star/Alert Symbol -->
+                <div style="
+                    position: absolute; 
+                    inset: 0; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-size: ${size * 0.5}px;
+                    z-index: 10;
+                    filter: drop-shadow(0 0 6px #22c55e);
+                    animation: pulse 2s infinite;
+                ">⚠️</div>
+
+                <!-- Count Badge -->
+                <div style="position: absolute; bottom: -4px; right: -4px; min-width: 18px; height: 18px; background: #f59e0b; border: 2px solid #000; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 4px; z-index: 20; box-shadow: 0 2px 6px rgba(0,0,0,0.8);">
+                    <span style="font-size: 10px; font-weight: 900; color: #000; font-family: monospace; line-height: 1;">${count}</span>
+                </div>
+            </div>
+        `,
+        className: 'bg-transparent',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+    });
+};
+
 
 const CATEGORY_COLORS: Record<string, string> = {
     'Armed Conflict': '#ef4444',
@@ -197,7 +275,37 @@ const CATEGORY_COLORS: Record<string, string> = {
     'Other': '#3b82f6'
 };
 
+// Alien Mode: Green shades (dark to bright) for different categories
+const ALIEN_CATEGORY_COLORS: Record<string, string> = {
+    'Armed Conflict': '#16a34a',    // green-600
+    'Protest': '#22c55e',           // green-500  
+    'Political Unrest': '#4ade80',  // green-400
+    'Other': '#86efac'              // green-300
+};
+
+// Normal Mode: Actual category colors (same as above but explicitly separated)
+const NORMAL_CATEGORY_COLORS: Record<string, string> = {
+    'Armed Conflict': '#ef4444',    // red-500
+    'Protest': '#f59e0b',           // amber-500
+    'Political Unrest': '#f97316',  // orange-500
+    'Other': '#3b82f6'              // blue-500
+};
+
 // --- Helper Functions ---
+/**
+ * Groups conflicts by location (rounded to 5 decimals to handle floating point precision)
+ * Returns array of groups where each group contains all conflicts at the same spot
+ */
+function groupByLocation(conflicts: Conflict[]): Conflict[][] {
+    const map = new Map<string, Conflict[]>();
+    conflicts.forEach(c => {
+        if (c.latitude == null || c.longitude == null) return;
+        const key = `${c.latitude.toFixed(5)}_${c.longitude.toFixed(5)}`;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(c);
+    });
+    return Array.from(map.values());
+}
 function getOffsetLatLng(map: L.Map, latlng: L.LatLng, pixelsX: number, pixelsY: number): L.LatLng {
     const point = map.latLngToContainerPoint(latlng);
     const newPoint = L.point(point.x + pixelsX, point.y + pixelsY);
@@ -500,94 +608,229 @@ export default function ConflictMap({ conflicts, onClusterClick, theme = 'dark',
                     clusterclick: (e: any) => handleClusterClick(e.layer)
                 }}
             >
-                {visibleConflicts.map(c => (
-                    <Marker
-                        key={c.id}
-                        position={[c.latitude!, c.longitude!]} // Assumes valid from filter
-                        icon={isAlienMode
-                            ? createAlienIcon((c.related_reports as any)?.alien_specific_type || 'Unknown')
-                            : createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30, !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0))
+                {/* ALIEN MODE: Use grouped markers with halos */}
+                {isAlienMode ? (
+                    groupByLocation(visibleConflicts).map(group => {
+                        const firstConflict = group[0];
+                        const position: [number, number] = [firstConflict.latitude!, firstConflict.longitude!];
+
+                        // Get distinct categories in this group
+                        const categories = Array.from(new Set(group.map(c => c.category)));
+                        const hasJudge = group.some(c => !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0));
+
+                        // Determine which icon to use
+                        let icon;
+                        if (categories.length === 1) {
+                            // Same category - check if multiple articles
+                            if (group.length > 1) {
+                                // Multiple articles, same category → alien icon WITH notification badge
+                                const alienType = (firstConflict.related_reports as any)?.alien_specific_type || 'Unknown';
+                                icon = createAlienIconWithBadge(alienType, group.length);
+                            } else {
+                                // Single article → regular alien icon
+                                icon = createAlienIcon((firstConflict.related_reports as any)?.alien_specific_type || 'Unknown');
+                            }
+                        } else {
+                            // Multiple categories → HOTSPOT star icon
+                            icon = createHotspotIcon(group.length);
                         }
-                        title={c.title}
-                        // @ts-ignore
-                        conflictData={c}
-                        eventHandlers={{
-                            click: (e) => {
-                                L.DomEvent.stopPropagation(e);
 
-                                // 1. Open Sidebar immediately
+                        return (
+                            <Marker
+                                key={`group-${position[0]}-${position[1]}`}
+                                position={position}
+                                icon={icon}
+                                title={group.length > 1 ? `${group.length} reports at this location` : firstConflict.title}
                                 // @ts-ignore
-                                const stories = c.related_stories || [c];
-                                if (onClusterClick) onClusterClick(stories);
+                                conflictData={firstConflict}
+                                eventHandlers={{
+                                    click: (e) => {
+                                        L.DomEvent.stopPropagation(e);
 
-                                // @ts-ignore
-                                const marker = e.target;
-                                const map = marker._map;
+                                        // Open sidebar with all conflicts in this group
+                                        // @ts-ignore
+                                        const stories = group.flatMap(c => c.related_stories || [c]);
+                                        if (onClusterClick) onClusterClick(stories);
 
-                                if (map) {
-                                    // Check if popup is currently open
-                                    const isPopupOpen = marker.isPopupOpen && marker.isPopupOpen();
+                                        // @ts-ignore
+                                        const marker = e.target;
+                                        const map = marker._map;
 
-                                    // 2. Sequence: If needs zoom, Zoom FIRST, then Popup.
-                                    if (!isPopupOpen) {
-                                        const currentZoom = map.getZoom();
-                                        const targetZoom = Math.min(currentZoom + 2, 16);
+                                        if (map) {
+                                            const isPopupOpen = marker.isPopupOpen && marker.isPopupOpen();
 
-                                        if (targetZoom > currentZoom) {
-                                            // Perform zoom
-                                            map.flyTo(e.latlng, targetZoom, { duration: 0.5 });
-                                            // Wait for zoom to finish before opening popup
-                                            map.once('moveend', () => {
+                                            if (!isPopupOpen) {
+                                                const currentZoom = map.getZoom();
+                                                const targetZoom = Math.min(currentZoom + 2, 16);
+
+                                                if (targetZoom > currentZoom) {
+                                                    map.flyTo(e.latlng, targetZoom, { duration: 0.5 });
+                                                    map.once('moveend', () => {
+                                                        marker.openPopup();
+                                                    });
+                                                } else {
+                                                    marker.openPopup();
+                                                }
+                                            } else {
                                                 marker.openPopup();
-                                            });
+                                            }
+                                        }
+                                    }
+                                }}
+                            >
+                                <Popup className="custom-popup" minWidth={300}>
+                                    <div className="p-1 font-mono">
+                                        {group.length > 1 ? (
+                                            // Multiple articles - show summary
+                                            <>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="px-3 py-1 rounded-none text-xs font-bold border border-green-400 text-black bg-green-500 uppercase tracking-widest">
+                                                        {categories.length} {categories.length === 1 ? 'TYPE' : 'TYPES'} • {group.length} REPORTS
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                    {group.slice(0, 5).map(c => (
+                                                        <div key={c.id} className="border-l-2 border-green-900/50 pl-2">
+                                                            <h4 className="text-xs font-bold text-green-400 mb-1 uppercase tracking-wider">
+                                                                {c.title}
+                                                            </h4>
+                                                            <span className="text-[10px] text-green-700">
+                                                                {c.category} • {new Date(c.published_at).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    {group.length > 5 && (
+                                                        <div className="text-xs text-green-600 font-bold uppercase tracking-wider">
+                                                            + {group.length - 5} MORE...
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // Single article - show full details
+                                            <>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="px-3 py-1 rounded-full text-xs font-bold text-black border border-green-400 bg-green-500">
+                                                        {firstConflict.category}
+                                                    </span>
+                                                    <span className="text-xs text-green-600 font-bold uppercase tracking-widest">
+                                                        {new Date(firstConflict.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-sm font-bold text-green-400 mb-2 leading-snug uppercase tracking-wider">
+                                                    {firstConflict.title}
+                                                </h3>
+                                                {firstConflict.description && (
+                                                    <p className="text-xs text-green-700 mb-3 line-clamp-3 leading-relaxed border-l-2 border-green-900/50 pl-2">
+                                                        {firstConflict.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex justify-between items-center pt-2 border-t border-green-900/30">
+                                                    <a
+                                                        href={firstConflict.source_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        ACCESS DATA LOG <span className="text-[10px]">→</span>
+                                                    </a>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    })
+                ) : (
+                    /* NORMAL MODE: Keep existing behavior */
+                    visibleConflicts.map(c => (
+                        <Marker
+                            key={c.id}
+                            position={[c.latitude!, c.longitude!]}
+                            icon={createRingIcon(CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other'], 30, !!c.narrative_analysis || (Array.isArray(c.related_reports) && c.related_reports.length > 0))}
+                            title={c.title}
+                            // @ts-ignore
+                            conflictData={c}
+                            eventHandlers={{
+                                click: (e) => {
+                                    L.DomEvent.stopPropagation(e);
+
+                                    // 1. Open Sidebar immediately
+                                    // @ts-ignore
+                                    const stories = c.related_stories || [c];
+                                    if (onClusterClick) onClusterClick(stories);
+
+                                    // @ts-ignore
+                                    const marker = e.target;
+                                    const map = marker._map;
+
+                                    if (map) {
+                                        // Check if popup is currently open
+                                        const isPopupOpen = marker.isPopupOpen && marker.isPopupOpen();
+
+                                        // 2. Sequence: If needs zoom, Zoom FIRST, then Popup.
+                                        if (!isPopupOpen) {
+                                            const currentZoom = map.getZoom();
+                                            const targetZoom = Math.min(currentZoom + 2, 16);
+
+                                            if (targetZoom > currentZoom) {
+                                                // Perform zoom
+                                                map.flyTo(e.latlng, targetZoom, { duration: 0.5 });
+                                                // Wait for zoom to finish before opening popup
+                                                map.once('moveend', () => {
+                                                    marker.openPopup();
+                                                });
+                                            } else {
+                                                // Already zoomed in? Just open popup
+                                                marker.openPopup();
+                                            }
                                         } else {
-                                            // Already zoomed in? Just open popup
+                                            // Popup already open? Keep it open.
                                             marker.openPopup();
                                         }
-                                    } else {
-                                        // Popup already open? Keep it open.
-                                        marker.openPopup();
                                     }
                                 }
-                            }
-                        }}
-                    >
-                        <Popup className="custom-popup" minWidth={300}>
-                            <div className={isAlienMode ? "p-1 font-mono" : "p-1"}>
-                                <div className="flex justify-between items-start mb-3">
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isAlienMode ? 'text-black border border-green-400' : 'text-white'}`}
-                                        style={{ backgroundColor: isAlienMode ? '#22c55e' : (CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other']) }}
-                                    >
-                                        {c.category}
-                                    </span>
-                                    <span className={isAlienMode ? "text-xs text-green-600 font-bold uppercase tracking-widest" : "text-xs text-slate-400 font-medium"}>
-                                        {new Date(c.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                    </span>
+                            }}
+                        >
+                            <Popup className="custom-popup" minWidth={300}>
+                                <div className={isAlienMode ? "p-1 font-mono" : "p-1"}>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span
+                                            className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isAlienMode ? 'text-black border border-green-400' : 'text-white'}`}
+                                            style={{ backgroundColor: isAlienMode ? '#22c55e' : (CATEGORY_COLORS[c.category] || CATEGORY_COLORS['Other']) }}
+                                        >
+                                            {c.category}
+                                        </span>
+                                        <span className={isAlienMode ? "text-xs text-green-600 font-bold uppercase tracking-widest" : "text-xs text-slate-400 font-medium"}>
+                                            {new Date(c.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </span>
+                                    </div>
+                                    <h3 className={isAlienMode ? "text-sm font-bold text-green-400 mb-2 leading-snug uppercase tracking-wider" : "text-sm font-bold text-slate-900 mb-2 leading-snug"}>
+                                        {c.title}
+                                    </h3>
+                                    {c.description && (
+                                        <p className={isAlienMode ? "text-xs text-green-700 mb-3 line-clamp-3 leading-relaxed border-l-2 border-green-900/50 pl-2" : "text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed"}>
+                                            {c.description}
+                                        </p>
+                                    )}
+                                    <div className={isAlienMode ? "flex justify-between items-center pt-2 border-t border-green-900/30" : "flex justify-between items-center pt-2 border-t border-slate-100"}>
+                                        <a
+                                            href={c.source_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={isAlienMode ? "text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider" : "text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {isAlienMode ? 'ACCESS DATA LOG' : 'Read Source'} <span className="text-[10px]">→</span>
+                                        </a>
+                                    </div>
                                 </div>
-                                <h3 className={isAlienMode ? "text-sm font-bold text-green-400 mb-2 leading-snug uppercase tracking-wider" : "text-sm font-bold text-slate-900 mb-2 leading-snug"}>
-                                    {c.title}
-                                </h3>
-                                {c.description && (
-                                    <p className={isAlienMode ? "text-xs text-green-700 mb-3 line-clamp-3 leading-relaxed border-l-2 border-green-900/50 pl-2" : "text-xs text-slate-600 mb-3 line-clamp-3 leading-relaxed"}>
-                                        {c.description}
-                                    </p>
-                                )}
-                                <div className={isAlienMode ? "flex justify-between items-center pt-2 border-t border-green-900/30" : "flex justify-between items-center pt-2 border-t border-slate-100"}>
-                                    <a
-                                        href={c.source_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={isAlienMode ? "text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 transition-colors uppercase tracking-wider" : "text-xs font-medium text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        {isAlienMode ? 'ACCESS DATA LOG' : 'Read Source'} <span className="text-[10px]">→</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
+                            </Popup>
+                        </Marker>
+                    ))
+                )}
             </MarkerClusterGroup>
 
             {/* 2. Drill-Down View: Custom Rendering for Active Clusters */}

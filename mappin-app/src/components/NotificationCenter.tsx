@@ -69,17 +69,17 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
     }
 
     const buttonClass = isAlienMode
-        ? `relative flex items-center justify-center h-12 w-12 rounded-none border transition-all duration-300 group ${isOpen
-            ? 'bg-black border-green-500 text-green-400 shadow-[0_0_20px_#22c55e]'
+        ? `relative inline-flex items-center gap-2 h-8 px-3 rounded-full transition-all duration-300 ${isOpen
+            ? 'bg-green-900/40 text-green-400'
             : hasUnread
-                ? 'bg-black border-green-500 text-green-500 shadow-[0_0_25px_#22c55e] animate-pulse'
-                : 'bg-black border-green-800 text-green-700 hover:border-green-500 hover:text-green-400'
+                ? 'bg-green-900/40 text-green-400 animate-pulse'
+                : 'hover:bg-green-900/40 text-green-400'
         }` // Alien Style
-        : `relative flex items-center justify-center h-12 w-12 rounded-full border transition-all duration-300 group ${isOpen
-            ? 'bg-slate-900 border-slate-500 text-white shadow-[0_0_20px_rgba(0,0,0,0.5)]'
+        : `relative inline-flex items-center gap-2 h-8 px-3 rounded-full transition-colors duration-300 ${isOpen
+            ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             : hasUnread
-                ? 'bg-slate-900 border-red-500 text-red-100 shadow-[0_0_25px_rgba(239,68,68,0.6)] animate-pulse'
-                : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
+                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 animate-pulse'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
         }`; // Normal Style
 
     const dropdownClass = isAlienMode
@@ -106,32 +106,24 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
                         animate={isNew ? { rotate: [0, -20, 20, -10, 10, 0] } : {}}
                         transition={{ duration: 0.5 }}
                     >
-                        <Bell size={20} className={isAlienMode ? (isOpen || hasUnread ? "text-green-400" : "text-green-700 group-hover:text-green-500") : (isOpen || hasUnread ? "text-slate-200" : "text-slate-500 dark:text-slate-200")} />
+                        <Bell size={16} />
                     </motion.div>
 
                     {/* Badge */}
-                    {notifications.length > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                            {hasUnread && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAlienMode ? 'bg-green-400' : 'bg-red-400'}`}></span>}
-                            <span className={`relative inline-flex h-3.5 w-3.5 border-2 ${isAlienMode ? 'bg-green-500 border-black rounded-none' : 'bg-red-500 border-slate-900 rounded-full'} ${hasUnread ? '' : (isAlienMode ? 'bg-green-800' : 'bg-slate-500')}`}></span>
+                    {notifications.length > 0 && hasUnread && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isAlienMode ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                            <span className={`relative inline-flex h-2 w-2 rounded-full ${isAlienMode ? 'bg-green-400' : 'bg-red-500'}`}></span>
                         </span>
                     )}
                 </div>
 
                 {/* Count Label */}
-                <AnimatePresence mode='wait'>
-                    {notifications.length > 0 && (
-                        <motion.span
-                            key="count"
-                            initial={{ opacity: 0, width: 0 }}
-                            animate={{ opacity: 1, width: 'auto' }}
-                            exit={{ opacity: 0, width: 0 }}
-                            className={`ml-2.5 text-sm font-bold overflow-hidden whitespace-nowrap ${isAlienMode ? 'text-green-500' : 'text-slate-700 dark:text-white'}`}
-                        >
-                            {notifications.length}
-                        </motion.span>
-                    )}
-                </AnimatePresence>
+                {notifications.length > 0 && (
+                    <span className={`text-sm font-semibold ${isAlienMode ? 'text-green-400 font-mono' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {notifications.length}
+                    </span>
+                )}
             </motion.button>
 
             {/* Dropdown List */}
