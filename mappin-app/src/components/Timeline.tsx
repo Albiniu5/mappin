@@ -59,6 +59,11 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         const newDate = new Date(Number(e.target.value))
         setInternalDate(newDate) // Update UI immediately
         if (!isDragging) setIsDragging(true)
+
+        // Haptic feedback
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(5);
+        }
     }
 
     const commitDateChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
@@ -120,8 +125,8 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
 
     // --- ALIEN STYLES ---
     const containerClass = isAlienMode
-        ? "absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-black/90 backdrop-blur-md p-4 rounded-none border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.3)] z-[1000] flex items-center gap-4 transition-colors font-mono"
-        : "absolute bottom-16 left-1/2 -translate-x-1/2 w-[90%] max-w-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-[1000] flex items-center gap-4 transition-colors";
+        ? "absolute bottom-10 sm:bottom-16 left-1/2 -translate-x-1/2 w-[95%] sm:w-[90%] max-w-3xl bg-black/90 backdrop-blur-md p-2 sm:p-4 rounded-none border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.3)] z-[1000] flex items-center gap-2 sm:gap-4 transition-colors font-mono"
+        : "absolute bottom-10 sm:bottom-16 left-1/2 -translate-x-1/2 w-[95%] sm:w-[90%] max-w-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-[1000] flex items-center gap-2 sm:gap-4 transition-colors";
 
     const btnClass = isAlienMode
         ? "p-2 rounded-none bg-black border border-green-800 text-green-600 hover:text-green-400 hover:border-green-500 transition-colors"
@@ -135,29 +140,29 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
         <div className={containerClass}>
 
             {/* Controls Group */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
                 <button
                     onClick={handlePrevDay}
-                    className={btnClass}
+                    className={`${btnClass} touch-manipulation`}
                     title="Previous Day"
                 >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={14} className="sm:w-4 sm:h-4" />
                 </button>
 
                 <button
                     onClick={onPlayToggle}
-                    className={playBtnClass}
+                    className={`${playBtnClass} touch-manipulation p-2 sm:p-3`}
                     title={isPlaying ? 'Pause' : 'Play'}
                 >
-                    {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                    {isPlaying ? <Pause size={16} className="sm:w-5 sm:h-5" /> : <Play size={16} className="sm:w-5 sm:h-5" />}
                 </button>
 
                 <button
                     onClick={handleNextDay}
-                    className={btnClass}
+                    className={`${btnClass} touch-manipulation`}
                     title="Next Day"
                 >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={14} className="sm:w-4 sm:h-4" />
                 </button>
             </div>
 
@@ -165,20 +170,20 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
             {setPlaybackSpeed && (
                 <button
                     onClick={handleSpeedChange}
-                    className={isAlienMode
-                        ? "px-3 py-2 rounded-none bg-black text-green-600 border border-green-800 hover:border-green-500 text-xs font-mono font-bold transition-colors min-w-[50px]"
-                        : "px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 text-xs font-mono font-bold transition-colors border border-slate-200 dark:border-slate-600 min-w-[50px]"}
+                    className={`touch-manipulation ${isAlienMode
+                        ? "px-2 sm:px-3 py-1.5 sm:py-2 rounded-none bg-black text-green-600 border border-green-800 hover:border-green-500 text-[10px] sm:text-xs font-mono font-bold transition-colors min-w-[40px] sm:min-w-[50px]"
+                        : "px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 text-[10px] sm:text-xs font-mono font-bold transition-colors border border-slate-200 dark:border-slate-600 min-w-[40px] sm:min-w-[50px]"}`}
                     title="Change playback speed"
                 >
-                    <FastForward size={14} className="inline mr-1" />
+                    <FastForward size={12} className="inline mr-0.5 sm:mr-1 sm:w-3.5 sm:h-3.5" />
                     {playbackSpeed}x
                 </button>
             )}
 
-            <div className="flex-1 flex flex-col gap-1">
-                <label className={isAlienMode ? "text-xs text-green-500 font-mono uppercase tracking-widest flex justify-between items-center" : "text-xs text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider flex justify-between items-center"}>
-                    <span>{internalDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                    {isPlaying && <span className={isAlienMode ? "text-green-400 animate-pulse drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]" : "text-orange-400 animate-pulse"}>● {isAlienMode ? 'REPLAY ACTIVE' : 'Playing'}</span>}
+            <div className="flex-1 flex flex-col gap-0.5 sm:gap-1 min-w-0">
+                <label className={isAlienMode ? "text-[10px] sm:text-xs text-green-500 font-mono uppercase tracking-widest flex justify-between items-center gap-2" : "text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono uppercase tracking-wider flex justify-between items-center gap-2"}>
+                    <span className="truncate">{internalDate.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    {isPlaying && <span className={`${isAlienMode ? "text-green-400 animate-pulse drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]" : "text-orange-400 animate-pulse"} shrink-0`}>● {isAlienMode ? 'ACTIVE' : 'Play'}</span>}
                 </label>
 
                 {/* Progress bar background */}
@@ -200,8 +205,8 @@ export default function Timeline({ date, setDate, minDate, maxDate, isPlaying, o
                         onTouchEnd={commitDateChange}
                         step={24 * 60 * 60 * 1000} // 1 day steps
                         className={isAlienMode
-                            ? "relative w-full h-2 bg-black border border-green-900 rounded-none appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:bg-green-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_#22c55e] [&::-webkit-slider-thumb]:cursor-pointer"
-                            : "relative w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"}
+                            ? "relative w-full h-3 bg-black border border-green-900 rounded-none appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:bg-green-500 [&::-webkit-slider-thumb]:shadow-[0_0_10px_#22c55e] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-110"
+                            : "relative w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-125 hover:[&::-webkit-slider-thumb]:scale-110"}
                         suppressHydrationWarning
                     />
                 </div>

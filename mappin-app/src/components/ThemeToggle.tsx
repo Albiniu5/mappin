@@ -21,7 +21,7 @@ export default function ThemeToggle({ theme, toggleTheme }: ThemeToggleProps) {
     return (
         <button
             onClick={toggleTheme}
-            className={`h-8 w-8 rounded-full transition-colors duration-300 flex items-center justify-center ${theme === 'dark'
+            className={`h-11 sm:h-9 px-2.5 sm:px-3 rounded-full transition-colors duration-300 flex items-center justify-center ${theme === 'dark'
                 ? 'hover:bg-slate-800 text-slate-300'
                 : 'hover:bg-slate-100 text-slate-600'
                 }`}

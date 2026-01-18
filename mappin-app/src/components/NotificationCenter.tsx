@@ -69,13 +69,13 @@ export default function NotificationCenter({ notifications, onLocate, onDismiss,
     }
 
     const buttonClass = isAlienMode
-        ? `relative inline-flex items-center gap-2 h-8 px-3 rounded-full transition-all duration-300 ${isOpen
+        ? `relative inline-flex items-center gap-2 h-11 sm:h-9 px-3 rounded-full transition-all duration-300 ${isOpen
             ? 'bg-green-900/40 text-green-400'
             : hasUnread
                 ? 'bg-green-900/40 text-green-400 animate-pulse'
                 : 'hover:bg-green-900/40 text-green-400'
         }` // Alien Style
-        : `relative inline-flex items-center gap-2 h-8 px-3 rounded-full transition-colors duration-300 ${isOpen
+        : `relative inline-flex items-center gap-2 h-11 sm:h-9 px-3 rounded-full transition-colors duration-300 ${isOpen
             ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
             : hasUnread
                 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 animate-pulse'

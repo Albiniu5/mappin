@@ -44,16 +44,16 @@ export default function JudgeCenter({ conflicts, onLocate }: JudgeCenterProps) {
                 onClick={toggleOpen}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`relative flex items-center justify-center h-12 px-4 rounded-full border transition-all duration-300 gap-2 ${isOpen
-                    ? 'bg-indigo-600 dark:bg-indigo-900 border-indigo-400 text-white dark:text-indigo-100 shadow-[0_0_20px_rgba(99,102,241,0.5)]'
+                className={`relative inline-flex items-center justify-center h-11 sm:h-9 px-3 sm:px-4 rounded-full transition-all duration-300 gap-2 text-sm font-semibold ${isOpen
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300'
                     : judgedConflicts.length > 0
-                        ? 'bg-white dark:bg-slate-900/90 border-indigo-200 dark:border-indigo-500/50 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:border-indigo-300 dark:hover:border-indigo-400 shadow-lg'
-                        : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                        ? 'hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
                     }`}
-                title="The Judge - AI Verdict Comparisons"
+                aria-label="The Judge - AI Verdict Comparisons"
             >
-                <Gavel size={18} />
-                <span className="text-sm font-bold">
+                <Gavel size={16} />
+                <span className="text-sm font-semibold">
                     {judgedConflicts.length}
                 </span>
                 {judgedConflicts.length > 0 && (

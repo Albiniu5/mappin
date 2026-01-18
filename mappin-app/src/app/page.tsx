@@ -5,7 +5,7 @@ import Timeline from '@/components/Timeline'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/supabase'
-import { Search, Loader2, X, Maximize2, Minimize2, Radio } from 'lucide-react'
+import { Search, Loader2, X, Maximize2, Minimize2, Radio, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
@@ -40,6 +40,30 @@ export default function Home() {
   const [showAbout, setShowAbout] = useState(false);
   const [isAlienMode, setIsAlienMode] = useState(false);
   const [alienSubFilter, setAlienSubFilter] = useState('All');
+  const [statsExpanded, setStatsExpanded] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Swipe to dismiss logic
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isDownSwipe = distance < -50;
+    if (isDownSwipe) {
+      setShowClusterSidebar(false);
+    }
+  };
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -290,9 +314,6 @@ export default function Home() {
     ? 'pointer-events-none absolute inset-0 z-[51] bg-gradient-to-b from-transparent via-green-900/5 to-transparent bg-[length:100%_4px] animate-scanline'
     : 'hidden';
 
-  const headingClass = isAlienMode
-    ? 'text-3xl font-bold text-green-500 font-mono tracking-widest drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]'
-    : 'text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm';
 
   const statsBoxClass = isAlienMode
     ? 'mt-3 bg-black/80 backdrop-blur-md border border-green-500/50 rounded-none shadow-[0_0_15px_rgba(34,197,94,0.2)] inline-block transition-colors overflow-hidden font-mono text-green-500'
@@ -319,82 +340,150 @@ export default function Home() {
       <div className={scanlineClass}></div>
 
       {/* Header Overlay */}
-      <div className="absolute top-0 left-0 w-full p-6 z-[1000] pointer-events-none">
+      <div className="absolute top-0 left-0 w-full p-3 sm:p-6 z-[1000] pointer-events-none">
         <div className="flex justify-between items-start">
-          <div className="relative pointer-events-auto">
-            <h1 className={headingClass}>
+          <div className="relative pointer-events-auto max-w-[calc(100%-4rem)] sm:max-w-none">
+            <h1 className={`${isAlienMode ? 'text-xl sm:text-3xl font-bold text-green-500 font-mono tracking-widest drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'text-xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm'}`}>
               {isAlienMode ? 'PLANETARY DEFENSE SYSTEM' : 'Global Conflict Tracker'}
             </h1>
-            <p className={isAlienMode ? "text-green-700 text-xs font-mono mt-1 uppercase tracking-[0.2em]" : "text-slate-400 text-sm mt-1"}>
+            <p className={`${isAlienMode ? "text-green-700 text-[10px] sm:text-xs font-mono mt-1 uppercase tracking-[0.2em]" : "text-slate-400 text-xs sm:text-sm mt-1"}`}>
               {isAlienMode ? 'UNAUTHORIZED ACCESS DETECTED' : 'Real-time situational awareness'}
               <span className={isAlienMode ? "text-green-400 ml-2 animate-pulse" : "text-xs text-emerald-400 ml-2"}>v{packageJson.version}</span>
             </p>
 
-            {/* Stats Panel */}
-            <div className={statsBoxClass}>
-              {/* Date Display */}
-              <div className={statsHeaderClass}>
-                <div className="flex items-center gap-2">
-                  <div className={isAlienMode ? "text-2xl font-black text-green-400 font-mono tracking-wider" : "text-2xl font-bold text-slate-800 dark:text-slate-100"}>
-                    {currentDate ? format(currentDate, 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy')}
+            {/* Mobile Stats Header (< 640px only) */}
+            <div className="sm:hidden">
+              <button
+                onClick={() => setStatsExpanded(!statsExpanded)}
+                className={`w-full ${isAlienMode ? 'bg-green-900/30 border border-green-500/50' : 'bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700'} backdrop-blur-lg rounded-t-xl mt-4 shadow-lg`}
+              >
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-start">
+                      <div className={`text-xs ${isAlienMode ? 'text-green-600 font-mono' : 'text-slate-500'} font-bold uppercase`}>
+                        {currentDate?.toDateString() === new Date().toDateString() ? 'Live' : format(currentDate || new Date(), 'MMM d')}
+                      </div>
+                      <div className={`text-3xl font-black ${isAlienMode ? 'text-green-400 font-mono' : 'text-blue-500 dark:text-blue-400'} leading-none`}>
+                        {statsConflicts.length}
+                      </div>
+                    </div>
+                    <div className={`flex gap-1.5 text-xs ${isAlienMode ? 'font-mono' : ''}`}>
+                      <span className={`px-2 py-0.5 rounded ${isAlienMode ? 'bg-green-900/40 text-green-400 border border-green-800' : 'bg-red-600/20 text-red-400'}`}>
+                        ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded ${isAlienMode ? 'bg-green-900/40 text-green-400 border border-green-800' : 'bg-amber-600/20 text-amber-400'}`}>
+                        📣 {statsConflicts.filter(c => c.category === 'Protest').length}
+                      </span>
+                    </div>
                   </div>
-                  <div className={isAlienMode ? "text-sm text-green-600 font-bold uppercase tracking-wider" : "text-sm text-slate-500 font-semibold"}>
-                    {currentDate?.toDateString() === new Date().toDateString() ? '(LIVE)' : ''}
+                  <ChevronDown
+                    className={`w-5 h-5 transition-transform ${statsExpanded ? 'rotate-180' : ''} ${isAlienMode ? 'text-green-400' : 'text-slate-500'}`}
+                  />
+                </div>
+              </button>
+
+              {/* Expanded Stats Bottom Sheet */}
+              {statsExpanded && (
+                <div className={`${isAlienMode ? 'bg-green-900/30 border-x border-b border-green-500/50' : 'bg-white/90 dark:bg-slate-900/90 border-x border-b border-slate-200 dark:border-slate-700'} backdrop-blur-lg rounded-b-xl shadow-lg p-4`}>
+                  {/* Date Display */}
+                  <div className={`text-center pb-3 mb-3 ${isAlienMode ? 'border-b border-green-800' : 'border-b border-slate-200 dark:border-slate-700'}`}>
+                    <div className={`text-xl font-bold ${isAlienMode ? 'text-green-400 font-mono tracking-wider' : 'text-slate-800 dark:text-slate-100'}`}>
+                      {currentDate ? format(currentDate, 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy')}
+                    </div>
+                  </div>
+
+                  {/* Detailed Stats Grid */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div>
+                      <div className={`text-xs ${isAlienMode ? 'text-green-700 font-mono' : 'text-slate-500'} font-bold uppercase mb-1`}>24h</div>
+                      <div className={`text-2xl font-black ${isAlienMode ? 'text-green-500 font-mono' : 'text-blue-500 dark:text-blue-400'}`}>
+                        {statsConflicts.length}
+                      </div>
+                    </div>
+                    <div>
+                      <div className={`text-xs ${isAlienMode ? 'text-green-700 font-mono' : 'text-slate-500'} font-bold uppercase mb-1`}>Today</div>
+                      <div className={`text-2xl font-black ${isAlienMode ? 'text-green-500 font-mono' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                        {todayConflicts.length}
+                      </div>
+                    </div>
+                    <div>
+                      <div className={`text-xs ${isAlienMode ? 'text-green-700 font-mono' : 'text-slate-500'} font-bold uppercase mb-1`}>+1h</div>
+                      <div className={`text-2xl font-black ${isAlienMode ? 'text-green-400 font-mono animate-pulse' : 'text-violet-500 dark:text-violet-400'}`}>
+                        {addedLastHour}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Stats Row */}
-              <div className="flex px-3 py-2 items-center gap-6">
-                <div className="flex flex-col">
-                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>24h</div>
-                  <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-blue-500 dark:text-blue-400 leading-none tracking-tight"}>{statsConflicts.length}</div>
+            {/* Desktop Stats Panel (>= 640px only) */}
+            <div className="hidden sm:block">
+              <div className={statsBoxClass}>
+                {/* Date Display */}
+                <div className={statsHeaderClass}>
+                  <div className="flex items-center gap-2">
+                    <div className={isAlienMode ? "text-2xl font-black text-green-400 font-mono tracking-wider" : "text-2xl font-bold text-slate-800 dark:text-slate-100"}>
+                      {currentDate ? format(currentDate, 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy')}
+                    </div>
+                    <div className={isAlienMode ? "text-sm text-green-600 font-bold uppercase tracking-wider" : "text-sm text-slate-500 font-semibold"}>
+                      {currentDate?.toDateString() === new Date().toDateString() ? '(LIVE)' : ''}
+                    </div>
+                  </div>
                 </div>
 
-                <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
+                {/* Stats Row */}
+                <div className="flex px-3 py-2 items-center gap-6">
+                  <div className="flex flex-col">
+                    <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>24h</div>
+                    <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-blue-500 dark:text-blue-400 leading-none tracking-tight"}>{statsConflicts.length}</div>
+                  </div>
 
-                <div className="flex flex-col">
-                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>Today</div>
-                  <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-emerald-500 dark:text-emerald-400 leading-none tracking-tight"}>{todayConflicts.length}</div>
+                  <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
+
+                  <div className="flex flex-col">
+                    <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>Today</div>
+                    <div className={isAlienMode ? "text-2xl font-black text-green-500 leading-none tracking-tight font-mono" : "text-2xl font-black text-emerald-500 dark:text-emerald-400 leading-none tracking-tight"}>{todayConflicts.length}</div>
+                  </div>
+
+                  <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
+
+                  <div className="flex flex-col">
+                    <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>+1h</div>
+                    <div className={isAlienMode ? "text-2xl font-black text-green-400 leading-none tracking-tight font-mono animate-pulse" : "text-2xl font-black text-violet-500 dark:text-violet-400 leading-none tracking-tight"}>{addedLastHour}</div>
+                  </div>
                 </div>
 
-                <div className={isAlienMode ? "w-px h-8 bg-green-900" : "w-px h-8 bg-slate-200 dark:bg-slate-700"}></div>
-
-                <div className="flex flex-col">
-                  <div className={isAlienMode ? "text-[10px] text-green-700 font-bold uppercase tracking-wider mb-0.5" : "text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5"}>+1h</div>
-                  <div className={isAlienMode ? "text-2xl font-black text-green-400 leading-none tracking-tight font-mono animate-pulse" : "text-2xl font-black text-violet-500 dark:text-violet-400 leading-none tracking-tight"}>{addedLastHour}</div>
+                {/* Category Breakdown - Always Visible */}
+                <div className="px-3 pb-2 flex gap-1.5 text-[10px]">
+                  {isAlienMode ? (
+                    <>
+                      <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
+                        ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
+                      </span>
+                      <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
+                        📣 {statsConflicts.filter(c => c.category === 'Protest').length}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">
+                        ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
+                      </span>
+                      <span className="bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded">
+                        📣 {statsConflicts.filter(c => c.category === 'Protest').length}
+                      </span>
+                    </>
+                  )}
                 </div>
-              </div>
-
-              {/* Category Breakdown - Always Visible */}
-              <div className="px-3 pb-2 flex gap-1.5 text-[10px]">
-                {isAlienMode ? (
-                  <>
-                    <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
-                      ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
-                    </span>
-                    <span className="bg-green-900/30 text-green-400 px-2 py-0.5 rounded border border-green-800 font-mono">
-                      📣 {statsConflicts.filter(c => c.category === 'Protest').length}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="bg-red-600/20 text-red-400 px-2 py-0.5 rounded">
-                      ⚔️ {statsConflicts.filter(c => c.category === 'Armed Conflict').length}
-                    </span>
-                    <span className="bg-amber-600/20 text-amber-400 px-2 py-0.5 rounded">
-                      📣 {statsConflicts.filter(c => c.category === 'Protest').length}
-                    </span>
-                  </>
-                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search and Filters Overlay (Top Right) */}
-      <div className="absolute top-20 right-6 z-[1000] flex flex-col gap-2 items-end pointer-events-none">
+      {/* Search and Filters Overlay (Top Right) - Desktop only */}
+      <div className="hidden sm:flex absolute top-20 right-6 z-[1000] flex-col gap-2 items-end pointer-events-none">
         <div className={filterBoxClass}>
           {/* Search Input */}
           <div className="relative">
@@ -488,8 +577,8 @@ export default function Home() {
       </div>
 
       {/* Redesigned Bottom Control Bar */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
-        <div className={`pointer-events-auto inline-flex items-center gap-2 px-3 py-2.5 rounded-full backdrop-blur-2xl transition-all shadow-2xl border ${isAlienMode
+      <div className="absolute bottom-14 sm:bottom-20 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-full px-2 sm:px-0 sm:w-auto">
+        <div className={`pointer-events-auto inline-flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-2 sm:py-2.5 rounded-full backdrop-blur-2xl transition-all shadow-2xl border ${isAlienMode
           ? 'bg-black/90 border-green-500/30 shadow-green-500/20'
           : 'bg-white/90 dark:bg-slate-900/90 border-slate-200/50 dark:border-slate-700/50 shadow-slate-900/10'
           }`}>
@@ -503,65 +592,75 @@ export default function Home() {
             isAlienMode={isAlienMode}
           />
 
-          {/* Judge - Only in Normal Mode */}
+          {/* Judge - Only in Normal Mode on Desktop */}
           {!isAlienMode && (
-            <JudgeCenter
-              conflicts={allConflicts}
-              onLocate={handleLocateNotification}
-            />
+            <div className="hidden sm:block">
+              <JudgeCenter
+                conflicts={allConflicts}
+                onLocate={handleLocateNotification}
+              />
+            </div>
           )}
 
-          {/* Divider */}
-          <div className={`w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+          {/* Divider - Hidden on mobile */}
+          <div className={`hidden sm:block w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
 
           {/* Date Navigation Group */}
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${isAlienMode ? 'bg-green-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+          <div className={`inline-flex items-center gap-0.5 sm:gap-1 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full ${isAlienMode ? 'bg-green-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
             <button
               onClick={() => setCurrentDate(prev => prev ? new Date(prev.getTime() - 86400000) : new Date())}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isAlienMode
-                ? 'hover:bg-green-800/40 text-green-400'
-                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+              className={`px-1.5 sm:px-2 h-9 sm:h-9 rounded-full flex items-center justify-center transition-colors touch-manipulation ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400 active:bg-green-800/60'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-600'
                 }`}
+              aria-label="Previous Day"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button
               onClick={() => setCurrentDate(new Date())}
-              className={`px-3 h-7 rounded-full text-sm font-semibold transition-colors ${isAlienMode
-                ? 'hover:bg-green-800/40 text-green-400 font-mono'
-                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+              className={`px-2 sm:px-3 h-9 sm:h-9 rounded-full text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap touch-manipulation ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400 font-mono active:bg-green-800/60'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 active:bg-slate-300 dark:active:bg-slate-600'
                 }`}
+              aria-label="Reset to Today"
             >
-              {isAlienMode ? 'NOW' : 'Today'}
+              {isAlienMode ? 'NOW' : 'Now'}
             </button>
             <button
               onClick={() => setCurrentDate(prev => prev ? new Date(prev.getTime() + 86400000) : new Date())}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isAlienMode
-                ? 'hover:bg-green-800/40 text-green-400'
-                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+              className={`px-1.5 sm:px-2 h-9 sm:h-9 rounded-full flex items-center justify-center transition-colors touch-manipulation ${isAlienMode
+                ? 'hover:bg-green-800/40 text-green-400 active:bg-green-800/60'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 active:bg-slate-300 dark:active:bg-slate-600'
                 }`}
+              aria-label="Next Day"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
 
-          {/* Divider */}
-          <div className={`w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+          {/* Divider - Hidden on mobile */}
+          <div className={`hidden sm:block w-px h-5 ${isAlienMode ? 'bg-green-800/30' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
 
-          {/* Theme Toggle - Only in Normal Mode */}
-          {!isAlienMode && <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />}
+          {/* Theme Toggle - Only in Normal Mode on Desktop */}
+          {!isAlienMode && (
+            <div className="hidden sm:block">
+              <ThemeToggle theme={theme} toggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
+            </div>
+          )}
 
-          {/* About */}
+          {/* About - Hidden on mobile */}
           <button
             onClick={() => setShowAbout(true)}
-            className={`h-8 px-3 rounded-full text-sm font-semibold transition-colors inline-flex items-center gap-1.5 ${isAlienMode
+            className={`hidden sm:inline-flex h-9 px-3 rounded-full text-sm font-semibold transition-colors items-center gap-1.5 ${isAlienMode
               ? 'hover:bg-green-900/40 text-green-400'
               : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
               }`}
+            aria-label="About Mappin"
           >
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -579,27 +678,179 @@ export default function Home() {
               setSelectedCategory('All');
               setAlienSubFilter('All');
             }}
-            className={`h-9 px-4 rounded-full text-sm font-bold transition-all inline-flex items-center gap-2 ${isAlienMode
-              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/40 shadow-lg shadow-green-500/20'
-              : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-600'
+            className={`h-9 sm:h-9 px-2.5 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all inline-flex items-center gap-1 sm:gap-2 touch-manipulation ${isAlienMode
+              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 active:bg-green-500/40 border border-green-500/40 shadow-lg shadow-green-500/20'
+              : 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 active:from-emerald-500/30 active:to-teal-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-600'
               }`}
+            aria-label={isAlienMode ? "Deactivate Alien Mode" : "Activate Alien Mode"}
           >
-            <span>{isAlienMode ? '👽' : '🛰️'}</span>
-            <span className={isAlienMode ? 'font-mono uppercase tracking-wide' : ''}>{isAlienMode ? 'ACTIVE' : 'Alien'}</span>
+            <span className="text-sm">{isAlienMode ? '👽' : '🛸'}</span>
+            <span className={`${isAlienMode ? 'font-mono uppercase tracking-wide' : ''} hidden xs:inline`}>{isAlienMode ? 'ACTIVE' : 'Alien'}</span>
           </button>
         </div>
       </div>
+
+      {/* Mobile Search FAB (Bottom Right) */}
+      <button
+        onClick={() => setSearchOpen(true)}
+        className={`sm:hidden fixed right-3 bottom-24 z-[999] w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-95 touch-manipulation ${isAlienMode
+          ? 'bg-green-600 border border-green-400 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]'
+          : 'bg-blue-600 text-white shadow-blue-900/30'
+          }`}
+        aria-label="Search and Filters"
+      >
+        <Search className="w-5 h-5" />
+        {/* Active Filter Indicator */}
+        {(searchTerm || selectedCategory !== 'All' || (isAlienMode && alienSubFilter !== 'All')) && (
+          <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+        )}
+      </button>
+
+      {/* Mobile Search Bottom Sheet */}
+      {searchOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 z-[2000] sm:hidden backdrop-blur-sm animate-in fade-in"
+            onClick={() => setSearchOpen(false)}
+          />
+
+          {/* Sheet */}
+          <div className={`fixed bottom-0 left-0 right-0 z-[2001] sm:hidden rounded-t-2xl p-5 pb-8 transition-transform duration-300 animate-in slide-in-from-bottom ${isAlienMode
+            ? 'bg-black border-t border-green-500 shadow-[0_-5px_20px_rgba(0,255,0,0.2)]'
+            : 'bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 shadow-2xl'
+            }`}>
+            {/* Handle/Close */}
+            <div className="flex items-center justify-between mb-5">
+              <div className={`text-lg font-bold ${isAlienMode ? 'text-green-400 font-mono tracking-wider' : 'text-slate-800 dark:text-slate-100'}`}>
+                {isAlienMode ? 'SEARCH DATABASE' : 'Search & Filter'}
+              </div>
+              <button
+                onClick={() => setSearchOpen(false)}
+                className={`p-2 rounded-full ${isAlienMode ? 'hover:bg-green-900/40 text-green-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'}`}
+              >
+                <ChevronDown className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex flex-col gap-5">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isAlienMode ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'}`} />
+                <input
+                  type="text"
+                  placeholder={isAlienMode ? "SCAN FREQUENCIES..." : "Search locations..."}
+                  className={`w-full h-12 pl-10 pr-10 rounded-xl text-base outline-none transition-all ${isAlienMode
+                    ? 'bg-green-900/20 border border-green-700 text-green-400 placeholder-green-800 focus:border-green-400 font-mono'
+                    : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  autoFocus
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filters */}
+              {!isAlienMode && (
+                <div>
+                  <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-3">Categories</div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`text-sm px-4 py-2 rounded-lg border transition-all font-medium ${selectedCategory === cat
+                          ? (cat === 'Armed Conflict' ? 'bg-red-600 border-red-500 text-white' :
+                            cat === 'Protest' ? 'bg-amber-600 border-amber-500 text-white' :
+                              cat === 'Political Unrest' ? 'bg-indigo-600 border-indigo-500 text-white' :
+                                cat === 'Other' ? 'bg-slate-600 border-slate-500 text-white' :
+                                  'bg-blue-600 border-blue-500 text-white')
+                          : (cat === 'Armed Conflict' ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30' :
+                            cat === 'Protest' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30' :
+                              cat === 'Political Unrest' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-900/30' :
+                                cat === 'Other' ? 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' :
+                                  'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30')
+                          }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Alien Filters */}
+              {isAlienMode && (
+                <div className="animate-in fade-in">
+                  <div className="text-xs text-green-600 font-mono font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Radio className="w-3 h-3 animate-pulse" /> TARGET TYPE
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['All', 'Sighting', 'Abduction', 'Crop Circle', 'Military Encounter', 'Unknown'].map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setAlienSubFilter(type)}
+                        className={`text-xs px-3 py-1.5 rounded-none border transition-all font-mono uppercase ${alienSubFilter === type
+                          ? 'bg-green-600 border-green-400 text-black shadow-[0_0_10px_#22c55e] font-bold'
+                          : 'bg-black border-green-800 text-green-600 hover:border-green-500 hover:text-green-400'
+                          }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reset Button (If filters active) */}
+              {(selectedCategory !== 'All' || (isAlienMode && alienSubFilter !== 'All')) && (
+                <button
+                  onClick={() => {
+                    setSelectedCategory('All');
+                    setAlienSubFilter('All');
+                    setSearchTerm('');
+                    setSearchOpen(false);
+                  }}
+                  className={`w-full py-3 rounded-xl font-bold mt-2 ${isAlienMode
+                    ? 'bg-green-900/40 text-green-400 border border-green-700 hover:bg-green-900/60'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Cluster Sidebar */}
       {
         showClusterSidebar && (
           <div
-            className={`absolute right-0 top-0 h-full z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 transition-colors ease-out ${isAlienMode
+            className={`absolute right-0 top-0 h-full z-[2000] shadow-2xl flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-right duration-300 transition-colors ease-out ${isAlienMode
               ? 'bg-black/95 backdrop-blur-xl border-l border-green-500/50'
               : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-200 dark:border-slate-700'
-              }`}
-            style={{ width: sidebarExpanded ? '700px' : '400px' }}
+              } w-full sm:w-[400px] ${sidebarExpanded ? 'sm:w-[700px]' : ''}`}
           >
+            {/* Mobile Drag Handle */}
+            <div
+              className="sm:hidden w-full h-8 flex items-center justify-center shrink-0 cursor-grab touch-none"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
+              <div className={`w-12 h-1.5 rounded-full mt-1 ${isAlienMode ? 'bg-green-900 border border-green-700' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+            </div>
             {/* Sidebar Header */}
             <div className={`p-5 border-b flex justify-between items-start transition-colors ${isAlienMode
               ? 'bg-black border-green-900'

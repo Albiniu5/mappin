@@ -4,6 +4,7 @@ import { Database } from '@/types/supabase'
 import { useEffect, useState, useRef } from 'react'
 import { format } from 'date-fns'
 import { motion, useAnimationFrame, useMotionValue, useMotionValueEvent } from 'framer-motion'
+import { ChevronDown } from 'lucide-react'
 
 
 type Conflict = Database['public']['Tables']['conflicts']['Row']
@@ -19,6 +20,7 @@ export default function NewsTicker({ conflicts, isAlienMode = false }: NewsTicke
     const containerRef = useRef<HTMLDivElement>(null)
     const [contentWidth, setContentWidth] = useState(0)
     const [isDragging, setIsDragging] = useState(false)
+    const [isCollapsed, setIsCollapsed] = useState(false)
 
     // Start at 0, will be adjusted once we measure width
     const x = useMotionValue(0)
@@ -80,58 +82,64 @@ export default function NewsTicker({ conflicts, isAlienMode = false }: NewsTicke
     if (headlines.length === 0) return null
 
     const containerClasses = isAlienMode
-        ? "absolute bottom-0 left-0 w-full z-[1000] bg-black border-t border-green-900/50 h-10 flex items-center overflow-hidden font-mono shadow-[0_-5px_20px_rgba(0,0,0,0.8)]"
-        : "absolute bottom-0 left-0 w-full z-[1000] bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 h-10 flex items-center overflow-hidden font-sans";
+        ? `absolute bottom-0 left-0 w-full z-[900] transition-all duration-300 ${isCollapsed ? 'h-8 w-auto min-w-[120px] bg-transparent' : 'bg-black border-t border-green-900/50 h-10 shadow-[0_-5px_20px_rgba(0,0,0,0.8)]'} flex items-center overflow-hidden font-mono`
+        : `absolute bottom-0 left-0 w-full z-[900] transition-all duration-300 ${isCollapsed ? 'h-8 w-auto min-w-[120px] bg-transparent' : 'bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 h-10 shadow-lg'} flex items-center overflow-hidden font-sans`;
 
     const labelClasses = isAlienMode
-        ? "bg-green-900 text-green-300 border-r border-green-500 text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none animate-pulse"
-        : "bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 shadow-xl select-none pointer-events-none";
+        ? `bg-green-900 text-green-300 border-r border-green-500 text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 select-none cursor-pointer hover:bg-green-800 transition-colors ${isCollapsed ? 'rounded-tr-lg border-t border-green-500' : ''}`
+        : `bg-red-600 text-white text-[10px] font-bold px-3 h-full flex items-center uppercase tracking-widest z-20 shrink-0 select-none cursor-pointer hover:bg-red-700 transition-colors ${isCollapsed ? 'rounded-tr-lg shadow-lg' : ''}`;
 
     return (
         <div className={containerClasses}>
-            {/* Label */}
-            <div className={labelClasses}>
-                {isAlienMode ? 'LIVE INTERCEPT' : 'Breaking News'}
-            </div>
+            {/* Label Toggle */}
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className={labelClasses}
+            >
+                <span className="mr-2">{isAlienMode ? 'LIVE FEED' : 'BREAKING'}</span>
+                <ChevronDown size={14} className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
+            </button>
 
             {/* Ticker Container - Mask */}
-            <div className="flex-1 overflow-hidden relative h-full flex items-center cursor-grab active:cursor-grabbing">
-                {/* Draggable Track */}
-                <motion.div
-                    ref={containerRef}
-                    className="flex items-center absolute left-0 will-change-transform" // Remove gap here, put padding in items if needed to be precise
-                    style={{ x }}
-                    drag="x"
-                    dragConstraints={{ left: -Infinity, right: Infinity }} // Allow infinite drag, we handle wrapping manually
-                    dragElastic={0} // No rubber banding, strict path
-                    dragMomentum={false} // Instant stop on release (preference? User said "proceed like usual", maybe momentum=false is better to resume scroll immediately)
-                    onDragStart={() => setIsDragging(true)}
-                    onDragEnd={() => setIsDragging(false)}
-                >
-                    {/* 3 Identical Sets for Seamless Infinite Scroll + Drag */}
+            {!isCollapsed && (
+                <div className="flex-1 overflow-hidden relative h-full flex items-center cursor-grab active:cursor-grabbing animate-in fade-in slide-in-from-right-10 duration-300">
+                    {/* Draggable Track */}
+                    <motion.div
+                        ref={containerRef}
+                        className="flex items-center absolute left-0 will-change-transform" // Remove gap here, put padding in items if needed to be precise
+                        style={{ x }}
+                        drag="x"
+                        dragConstraints={{ left: -Infinity, right: Infinity }} // Allow infinite drag, we handle wrapping manually
+                        dragElastic={0} // No rubber banding, strict path
+                        dragMomentum={false} // Instant stop on release (preference? User said "proceed like usual", maybe momentum=false is better to resume scroll immediately)
+                        onDragStart={() => setIsDragging(true)}
+                        onDragEnd={() => setIsDragging(false)}
+                    >
+                        {/* 3 Identical Sets for Seamless Infinite Scroll + Drag */}
 
-                    {/* Set 1 (Left Buffer) */}
-                    <div className="flex gap-12 items-center shrink-0 px-6">
-                        {headlines.map((item) => (
-                            <NewsItem key={`set1-${item.id}`} item={item} isAlienMode={isAlienMode} />
-                        ))}
-                    </div>
+                        {/* Set 1 (Left Buffer) */}
+                        <div className="flex gap-12 items-center shrink-0 px-6">
+                            {headlines.map((item) => (
+                                <NewsItem key={`set1-${item.id}`} item={item} isAlienMode={isAlienMode} />
+                            ))}
+                        </div>
 
-                    {/* Set 2 (Primary/Center) */}
-                    <div className="flex gap-12 items-center shrink-0 px-6">
-                        {headlines.map((item) => (
-                            <NewsItem key={`set2-${item.id}`} item={item} isAlienMode={isAlienMode} />
-                        ))}
-                    </div>
+                        {/* Set 2 (Primary/Center) */}
+                        <div className="flex gap-12 items-center shrink-0 px-6">
+                            {headlines.map((item) => (
+                                <NewsItem key={`set2-${item.id}`} item={item} isAlienMode={isAlienMode} />
+                            ))}
+                        </div>
 
-                    {/* Set 3 (Right Buffer) */}
-                    <div className="flex gap-12 items-center shrink-0 px-6">
-                        {headlines.map((item) => (
-                            <NewsItem key={`set3-${item.id}`} item={item} isAlienMode={isAlienMode} />
-                        ))}
-                    </div>
-                </motion.div>
-            </div>
+                        {/* Set 3 (Right Buffer) */}
+                        <div className="flex gap-12 items-center shrink-0 px-6">
+                            {headlines.map((item) => (
+                                <NewsItem key={`set3-${item.id}`} item={item} isAlienMode={isAlienMode} />
+                            ))}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     )
 }
@@ -141,8 +149,8 @@ function NewsItem({ item, isAlienMode }: { item: Conflict, isAlienMode: boolean 
         return (
             <div className="flex items-center gap-2 whitespace-nowrap select-none">
                 <span className="w-1.5 h-1.5 bg-green-500 animate-[ping_2s_infinite] shrink-0"></span>
-                <span className="font-bold text-green-600">{format(new Date(item.published_at), 'HH:mm')}</span>
-                <span className="font-medium text-green-400 uppercase tracking-tight">{item.title}</span>
+                <span className="font-bold text-xs sm:text-sm text-green-600">{format(new Date(item.published_at), 'HH:mm')}</span>
+                <span className="font-medium text-xs sm:text-sm text-green-400 uppercase tracking-tight">{item.title}</span>
                 <span className="text-green-800 text-[10px] uppercase">[{item.location_name || 'UNKNOWN'}]</span>
             </div>
         )
@@ -151,8 +159,8 @@ function NewsItem({ item, isAlienMode }: { item: Conflict, isAlienMode: boolean 
     return (
         <div className="flex items-center gap-2 whitespace-nowrap select-none">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0"></span>
-            <span className="font-bold text-slate-700 dark:text-slate-200">{format(new Date(item.published_at), 'HH:mm')}</span>
-            <span className="opacity-80 font-medium text-slate-800 dark:text-slate-200">{item.title}</span>
+            <span className="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-200">{format(new Date(item.published_at), 'HH:mm')}</span>
+            <span className="opacity-80 font-medium text-xs sm:text-sm text-slate-800 dark:text-slate-200">{item.title}</span>
             <span className="text-slate-500 text-[10px] uppercase">({item.location_name || 'Unknown'})</span>
         </div>
     )
