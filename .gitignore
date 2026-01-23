@@ -9,4 +9,5 @@ build
 coverage
 
 api_keys.md
+CREDENTIALS_SUMMARY.md
 .cursor/mcp.json

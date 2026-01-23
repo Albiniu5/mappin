@@ -41,7 +41,7 @@
                     "parameters": [
                         {
                             "name": "key",
-                            "value": "YOUR_GEMINI_API_KEY"
+                            "value": "AIzaSyBUiLEbcDkEsAuHjzqF48S5QbeKfGxE8Fc"
                         }
                     ]
                 },
@@ -76,7 +76,7 @@
                     "parameters": [
                         {
                             "name": "key",
-                            "value": "AIzaSyBxy1M6i_AqiDEezTYCWqRorthYTNwqwtA"
+                            "value": "AIzaSyBUiLEbcDkEsAuHjzqF48S5QbeKfGxE8Fc"
                         }
                     ]
                 },
